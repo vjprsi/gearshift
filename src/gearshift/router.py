@@ -21,7 +21,8 @@ from .policy import EFFORTS, TIERS, Policy, default_policy, effort_rank, tier_ra
 # here instead of inheriting the smaller model's effort
 _ENTRY_EFFORT = {"haiku": "medium", "sonnet": "medium", "opus": "medium", "fable": "high"}
 
-Judge = Callable[[str], Optional[str]]
+# a judge returns a class name, or {"class": ..., "flags": [...], "notes": [...]}
+Judge = Callable[[str], object]
 
 
 def _shift(effort: str, by: int, lo: str = "low", hi: str = "max") -> str:
@@ -67,6 +68,7 @@ class Decision:
             "effort": self.effort,
             "effort_is_default": self.effort_is_default,
             "confidence": self.confidence,
+            "judged": bool(self.classification and self.classification.judged),
             "strategy": self.strategy,
             "capped_from": self.capped_from,
             "reasons": list(self.reasons),
@@ -81,7 +83,9 @@ class Decision:
 
     def explain(self) -> str:
         lines = ["%s @ %s   (%s)" % (self.tier, self.effort, self.model)]
-        lines.append("  class       %s   confidence %.2f" % (self.task_class, self.confidence))
+        lines.append("  class       %s   confidence %.2f%s" % (
+            self.task_class, self.confidence,
+            "   (decided by the judge model)" if self.classification and self.classification.judged else ""))
         if self.classification and self.classification.evidence:
             lines.append("  evidence")
             for e in self.classification.evidence:
@@ -107,9 +111,13 @@ class Router:
     when the offline classifier is not confident (see gearshift.judge).
     """
 
-    def __init__(self, policy: Optional[Policy] = None, judge: Optional[Judge] = None):
+    def __init__(self, policy: Optional[Policy] = None, judge: Optional[Judge] = None,
+                 judge_mode: str = "unsure"):
+        """judge_mode: "unsure" asks the judge only when the keyword rules are
+        not confident; "always" asks it for every task."""
         self.policy = policy or default_policy()
         self.judge = judge
+        self.judge_mode = judge_mode
 
     # -- classification ------------------------------------------------------
 
@@ -118,17 +126,26 @@ class Router:
         c = classify(task, policy=self.policy, description=description,
                      agent_type=agent_type, platform=platform)
         below = self.policy.thresholds.get("judge_below", 0.5)
-        if self.judge is not None and (c.task_class == "unsure" or c.confidence < below):
+        ask = self.judge_mode == "always" or c.task_class == "unsure" or c.confidence < below
+        if self.judge is not None and ask and (task or description):
             try:
                 verdict = self.judge(((description + "\n") if description else "") + task)
             except Exception:  # a judge failure must never fail routing
                 verdict = None
-            if verdict in self.policy.classes and verdict != "unsure":
-                c.notes.append("offline classifier was not confident (%s, %.2f); judge model said %s"
-                               % (c.task_class, c.confidence, verdict))
-                c.runner_up = c.task_class if c.task_class != verdict else c.runner_up
-                c.task_class = verdict
-                c.confidence = 0.7
+            if isinstance(verdict, str):
+                verdict = {"class": verdict}
+            cls = verdict.get("class") if isinstance(verdict, dict) else None
+            if cls in self.policy.classes and cls != "unsure":
+                c.notes.append("keyword rules were not confident (%s, %.2f); the judge model said %s"
+                               % (c.task_class, c.confidence, cls))
+                c.flags.update(f for f in (verdict.get("flags") or []) if isinstance(f, str))
+                # the safety rules see the judge's flags AND the keyword flags
+                from .judge import apply_safety
+                safe = apply_safety({"class": cls, "flags": c.flags})
+                cls = safe["class"]
+                c.notes.extend(safe["notes"])
+                c.runner_up = c.task_class if c.task_class != cls else c.runner_up
+                c.task_class, c.confidence, c.judged = cls, 0.7, True
         return c
 
     # -- routing -------------------------------------------------------------

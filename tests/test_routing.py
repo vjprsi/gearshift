@@ -8,7 +8,48 @@ from gearshift.policy import EFFORTS, TIERS, load_policy, tier_rank
 from gearshift.router import Router
 
 
+GERMAN = "Finde alle Dateien, die das Zahlungsmodul importieren, und gib mir die Liste."
+GERMAN_FIX = "Behebe den Fehler im Zahlungsmodul."
+
+
 class CaseSets(unittest.TestCase):
+    def test_spanish_portuguese_regression_set(self):
+        r = evaluate(os.path.join(TESTS, "cases_es.jsonl"), clean_router())
+        self.assertEqual(r["tier_accuracy"], 1.0, r["misses"])
+
+    def test_spanish_portuguese_blind_set_floor(self):
+        # run once blind at 90.0%, both misses were over-routed. Not tuned against.
+        r = evaluate(os.path.join(TESTS, "cases_es_blind.jsonl"), clean_router())
+        self.assertGreaterEqual(r["tier_accuracy"], 0.85, r["misses"])
+        self.assertEqual(r["under_routed"], 0, r["misses"])
+
+    def test_unknown_languages_never_go_cheap_without_a_judge(self):
+        # German, French, Italian, Hindi, Japanese. Offline these are "unsure",
+        # which means Opus, and the hook leaves an unsure call alone. Expensive
+        # sometimes, but nothing lands below its label by accident. (French
+        # shares a few verbs with Spanish, so the odd one is classified.)
+        from gearshift.evalset import load_cases
+        router = clean_router()
+        unsure = 0
+        for c in load_cases(os.path.join(TESTS, "cases_multi.jsonl")):
+            d = router.route(c["task"])
+            if d.task_class == "unsure":
+                unsure += 1
+                self.assertEqual(d.tier, "opus")
+            else:
+                self.assertGreaterEqual(tier_rank(d.tier), tier_rank(c["tier"]), c["task"])
+        self.assertGreaterEqual(unsure, 20)
+
+    def test_perfect_judge_fixes_unknown_languages(self):
+        # what the judge is worth IF it classifies correctly: an upper bound, not a measurement
+        from gearshift.evalset import load_cases
+        cases = {c["task"]: c["class"] for c in load_cases(os.path.join(TESTS, "cases_multi.jsonl"))}
+        oracle = Router(load_policy(use_user_files=False),
+                        judge=lambda text: cases.get(text.strip().split("\n")[-1]))
+        r = evaluate(os.path.join(TESTS, "cases_multi.jsonl"), oracle)
+        self.assertGreaterEqual(r["tier_accuracy"], 0.9, r["misses"])
+        self.assertEqual(r["under_routed"], 0, r["misses"])
+
     def test_dev_set_is_a_regression_suite(self):
         r = evaluate(os.path.join(TESTS, "cases_dev.jsonl"), clean_router())
         self.assertEqual(r["under_routed"], 0, r["misses"])
@@ -135,9 +176,17 @@ class Decisions(unittest.TestCase):
         self.assertEqual(self.r.route("").task_class, "unsure")
         self.assertEqual(self.r.route("   \n").task_class, "unsure")
 
-    def test_non_english_is_unsure_without_a_judge(self):
+    def test_spanish_and_portuguese_route_offline(self):
         d = self.r.route("Busca todos los archivos que importan el modulo de pagos y dame la lista.")
-        self.assertEqual(d.task_class, "unsure")
+        self.assertEqual((d.task_class, d.tier), ("lookup", "haiku"))
+        d = self.r.route("Corrige o erro de digitação no README.")
+        self.assertEqual(d.tier, "sonnet")
+
+    def test_other_languages_are_unsure_without_a_judge(self):
+        for t in (GERMAN, "支払いモジュールのバグを修正してください。",
+                  "भुगतान मॉड्यूल को आयात करने वाली सभी फ़ाइलें खोजें और सूची दें।"):
+            d = self.r.route(t)
+            self.assertEqual((d.task_class, d.tier), ("unsure", "opus"), t)
 
     def test_judge_is_consulted_only_when_unsure(self):
         calls = []
@@ -146,8 +195,9 @@ class Decisions(unittest.TestCase):
             calls.append(text)
             return "lookup"
         r = Router(load_policy(use_user_files=False), judge=judge)
-        d = r.route("Busca todos los archivos que importan el modulo de pagos y dame la lista.")
+        d = r.route(GERMAN)
         self.assertEqual((d.task_class, d.tier), ("lookup", "haiku"))
+        self.assertTrue(d.classification.judged)
         self.assertEqual(len(calls), 1)
         r.route("Find every caller of parse_config() and list the file paths.")
         self.assertEqual(len(calls), 1, "confident decisions must not call the judge")
@@ -156,11 +206,39 @@ class Decisions(unittest.TestCase):
         def judge(text):
             raise RuntimeError("network down")
         r = Router(load_policy(use_user_files=False), judge=judge)
-        self.assertEqual(r.route("Hacer la cosa.").task_class, "unsure")
+        self.assertEqual(r.route("Mach das.").task_class, "unsure")
 
     def test_judge_garbage_is_ignored(self):
-        r = Router(load_policy(use_user_files=False), judge=lambda t: "banana")
-        self.assertEqual(r.route("Hacer la cosa.").task_class, "unsure")
+        for junk in ("banana", 42, {"class": "banana"}, {"flags": ["stakes"]}, ["lookup"]):
+            r = Router(load_policy(use_user_files=False), judge=lambda t, j=junk: j)
+            self.assertEqual(r.route("Mach das.").task_class, "unsure", junk)
+
+    def test_judge_flags_move_the_decision(self):
+        pol = load_policy(use_user_files=False)
+        plain = Router(pol, judge=lambda t: {"class": "edit", "flags": []}).route(GERMAN_FIX)
+        risky = Router(pol, judge=lambda t: {"class": "edit", "flags": ["mutating", "stakes"]}).route(GERMAN_FIX)
+        self.assertEqual((plain.tier, plain.effort), ("sonnet", "medium"))
+        self.assertGreater((tier_rank(risky.tier), EFFORTS.index(risky.effort)),
+                           (tier_rank(plain.tier), EFFORTS.index(plain.effort)))
+
+    def test_judge_cannot_send_a_code_change_to_haiku(self):
+        pol = load_policy(use_user_files=False)
+        for cheap in ("lookup", "extract", "chat"):
+            d = Router(pol, judge=lambda t, c=cheap: {"class": c, "flags": ["mutating"]}).route(GERMAN_FIX)
+            self.assertEqual(d.task_class, "edit", cheap)
+            self.assertNotEqual(d.tier, "haiku", cheap)
+
+    def test_judge_always_mode(self):
+        calls = []
+        r = Router(load_policy(use_user_files=False), judge=lambda t: calls.append(t) or "review",
+                   judge_mode="always")
+        d = r.route("Find every caller of parse_config() and list the file paths.")
+        self.assertEqual((len(calls), d.task_class), (1, "review"))
+
+    def test_judged_decisions_are_confident_enough_to_act(self):
+        pol = load_policy(use_user_files=False)
+        d = Router(pol, judge=lambda t: "lookup").route(GERMAN)
+        self.assertGreaterEqual(d.confidence, pol.thresholds["act_confidence"])
 
 
 class Constraints(unittest.TestCase):

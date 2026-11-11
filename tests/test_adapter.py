@@ -102,13 +102,106 @@ class Adapter(unittest.TestCase):
 
 class Judge(unittest.TestCase):
     def test_judge_prompt_and_parse(self):
-        client = FakeClient("Class: extract")
+        client = FakeClient('{"class": "extract", "changes_code": false, "high_stakes": true}')
         judge = make_judge(make_call(client), policy=load_policy(use_user_files=False))
-        self.assertEqual(judge("Clasifica estos tickets por area"), "extract")
+        v = judge("Sortiere diese Tickets nach Bereich")
+        self.assertEqual((v["class"], v["flags"]), ("extract", ["stakes"]))
         req = client.requests[0]
         self.assertEqual((req["model"], req["output_config"]["effort"]), ("claude-haiku-5-5", "low"))
-        self.assertIn("- lookup:", req["messages"][0]["content"])
-        self.assertNotIn("unsure", req["messages"][0]["content"].split("Task:")[0].replace("unsure of", ""))
+        body = req["messages"][0]["content"]
+        self.assertIn("- lookup:", body)
+        self.assertIn("Sortiere diese Tickets", body)
+        self.assertNotIn("- unsure:", body)
+
+    def test_judge_accepts_a_bare_class_name(self):
+        judge = make_judge(make_call(FakeClient("Class: extract")), policy=load_policy(use_user_files=False))
+        self.assertEqual(judge("Sortiere diese Tickets")["class"], "extract")
+
+    def test_judge_safety_rules(self):
+        pol = load_policy(use_user_files=False)
+        v = make_judge(make_call(FakeClient('{"class":"lookup","changes_code":true}')), policy=pol)("x1")
+        self.assertEqual(v["class"], "edit")
+        v = make_judge(make_call(FakeClient('{"class":"edit","changes_code":true,"hard_bug":true}')), policy=pol)("x2")
+        self.assertEqual(v["class"], "build")
+        v = make_judge(make_call(FakeClient('{"class":"unsure"}')), policy=pol)("x3")
+        self.assertIsNone(v)
+
+    def test_judge_cache(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "judge_cache.json"
+            client = FakeClient('{"class": "review"}')
+            pol = load_policy(use_user_files=False)
+            judge = make_judge(make_call(client), policy=pol, cache_path=path)
+            judge("Prüfe diesen Pull Request"); judge("Prüfe diesen Pull Request")
+            self.assertEqual(len(client.requests), 1)
+            again = make_judge(make_call(client), policy=pol, cache_path=path)
+            self.assertEqual(again("Prüfe diesen Pull Request")["class"], "review")
+            self.assertEqual(len(client.requests), 1, "second process must read the cache file")
+
+    def test_api_transport_request_shape(self):
+        import json, threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from unittest import mock
+        from gearshift.judge import api_transport
+        seen = {}
+
+        class H(BaseHTTPRequestHandler):
+            def do_POST(self):
+                seen["path"] = self.path
+                seen["key"] = self.headers.get("x-api-key")
+                seen["body"] = json.loads(self.rfile.read(int(self.headers["content-length"])))
+                out = json.dumps({"content": [{"type": "thinking", "thinking": "hm"},
+                                              {"type": "text", "text": '{"class": "lookup"}'}]}).encode()
+                self.send_response(200); self.send_header("content-type", "application/json")
+                self.send_header("content-length", str(len(out))); self.end_headers(); self.wfile.write(out)
+
+            def log_message(self, *a):
+                pass
+        srv = HTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            env = {"ANTHROPIC_BASE_URL": "http://127.0.0.1:%d" % srv.server_port, "ANTHROPIC_API_KEY": "sk-test",
+                   "NO_PROXY": "127.0.0.1", "no_proxy": "127.0.0.1"}
+            with mock.patch.dict("os.environ", env):
+                judge = make_judge(api_transport(), policy=load_policy(use_user_files=False))
+                self.assertEqual(judge("Finde alle Aufrufer")["class"], "lookup")
+        finally:
+            srv.shutdown(); srv.server_close()
+        self.assertEqual((seen["path"], seen["key"]), ("/v1/messages", "sk-test"))
+        self.assertEqual(seen["body"]["model"], "claude-haiku-5-5")
+        self.assertEqual(seen["body"]["output_config"], {"effort": "low"})
+
+    def test_judge_from_config(self):
+        from unittest import mock
+        from gearshift.judge import judge_from_config
+        with mock.patch.dict("os.environ", {}, clear=True):
+            self.assertIsNone(judge_from_config("auto"))
+            self.assertIsNone(judge_from_config("api"))
+            self.assertIsNone(judge_from_config("off"))
+        with mock.patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test"}, clear=True):
+            self.assertIsNotNone(judge_from_config("auto"))
+            self.assertIsNone(judge_from_config("off"))
+        with mock.patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test", "GEARSHIFT_INSIDE_JUDGE": "1"}, clear=True):
+            self.assertIsNone(judge_from_config("auto"), "no judge inside a judge call")
+
+    @unittest.skipIf(__import__("os").name == "nt", "fake binary is a shell script")
+    def test_claude_cli_transport(self):
+        import os, stat, tempfile
+        from gearshift.judge import claude_cli_transport
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = os.path.join(tmp, "claude")
+            with open(fake, "w") as f:
+                f.write('#!/bin/sh\ncat > "%s/stdin.txt"\necho "$@ inside=$GEARSHIFT_INSIDE_JUDGE" > "%s/args.txt"\n'
+                        'echo \'{"class": "design"}\'\n' % (tmp, tmp))
+            os.chmod(fake, os.stat(fake).st_mode | stat.S_IEXEC)
+            judge = make_judge(claude_cli_transport(binary=fake), policy=load_policy(use_user_files=False))
+            self.assertEqual(judge("Entwirf die Architektur")["class"], "design")
+            with open(os.path.join(tmp, "stdin.txt")) as f:
+                self.assertIn("Entwirf die Architektur", f.read())
+            with open(os.path.join(tmp, "args.txt")) as f:
+                self.assertEqual(f.read().strip(), "-p --model haiku inside=1")
 
     def test_judge_returns_none_on_nonsense(self):
         judge = make_judge(make_call(FakeClient("I cannot tell")), policy=load_policy(use_user_files=False))
@@ -117,7 +210,7 @@ class Judge(unittest.TestCase):
     def test_router_with_judge(self):
         pol = load_policy(use_user_files=False)
         r = Router(pol, judge=make_judge(make_call(FakeClient("build")), policy=pol))
-        d = r.route("Implementa la funcionalidad de notificaciones en varios archivos")
+        d = r.route("Implementiere die Benachrichtigungsfunktion über mehrere Dateien")
         self.assertEqual((d.task_class, d.tier), ("build", "opus"))
 
 

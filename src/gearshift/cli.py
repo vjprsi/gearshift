@@ -34,9 +34,21 @@ def _read_task(args: argparse.Namespace) -> str:
     return text
 
 
-def cmd_route(args: argparse.Namespace) -> int:
+def _router_for(args: argparse.Namespace):
     from .router import Router
-    d = Router().route(
+    kind = getattr(args, "judge", None)
+    if not kind or kind == "off":
+        return Router()
+    from .judge import judge_from_config
+    judge = judge_from_config(kind)
+    if judge is None:
+        raise SystemExit("gearshift: judge %r is not available (api needs GEARSHIFT_API_KEY or ANTHROPIC_API_KEY, "
+                         "claude needs the claude CLI on PATH)" % kind)
+    return Router(judge=judge, judge_mode="always" if getattr(args, "judge_always", False) else "unsure")
+
+
+def cmd_route(args: argparse.Namespace) -> int:
+    d = _router_for(args).route(
         _read_task(args), description=args.description, agent_type=args.agent_type,
         platform=args.platform, floor=args.floor, ceiling=args.ceiling,
         available=args.available.split(",") if args.available else None,
@@ -97,7 +109,7 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 def cmd_eval(args: argparse.Namespace) -> int:
     from .evalset import evaluate
-    r = evaluate(args.path)
+    r = evaluate(args.path, _router_for(args))
     if args.json:
         print(json.dumps(r, indent=2))
         return 0
@@ -166,6 +178,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     except OSError as exc:
         line(False, "state directory not writable: %s (%s)" % (sd, exc))
     cfg = load_config(os.getcwd())
+    jk = cfg["judge"]
+    if jk == "auto":
+        has_key = os.environ.get("GEARSHIFT_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+        jk = "auto (api key found: on)" if has_key else "auto (no api key: off)"
+    print("  judge: %s" % jk)
     print("  config: mode=%s ceiling=%s set_effort=%s announce=%s advise=%s%s" % (
         cfg["mode"], cfg["ceiling"], cfg["set_effort"], cfg["announce"], cfg["advise"],
         " project_cap=%s" % cfg["project_cap"] if cfg.get("project_cap") else ""))
@@ -213,6 +230,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--prefer", choices=["cost", "balanced", "quality"], default="balanced")
     r.add_argument("--json", action="store_true")
     r.add_argument("-q", "--quiet", action="store_true", help="print only: <model> <effort>")
+    r.add_argument("--judge", choices=["off", "api", "claude"], help="ask a model when the keyword rules are unsure")
+    r.add_argument("--judge-always", action="store_true", help="ask the judge for every task")
     r.set_defaults(fn=cmd_route)
 
     s = sub.add_parser("session", help="starting model and effort for a whole session")
@@ -247,6 +266,8 @@ def build_parser() -> argparse.ArgumentParser:
     e = sub.add_parser("eval", help="score the router against a labelled JSONL file")
     e.add_argument("path")
     e.add_argument("--json", action="store_true")
+    e.add_argument("--judge", choices=["off", "api", "claude"], help="score with the judge switched on (real model calls)")
+    e.add_argument("--judge-always", action="store_true")
     e.set_defaults(fn=cmd_eval)
 
     b = sub.add_parser("bench", help="compare configurations on your own tasks: cost per finished task")

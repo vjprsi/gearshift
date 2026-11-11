@@ -1,0 +1,25 @@
+{"task": "Finde alle Dateien, die das Zahlungsmodul importieren, und gib mir die Liste.", "class": "lookup", "tier": "haiku", "lang": "de"}
+{"task": "Behebe den Tippfehler in der Fehlermeldung von login.py.", "class": "edit", "tier": "sonnet", "lang": "de"}
+{"task": "Entwirf die Architektur für einen Echtzeit-Betrugserkennungsdienst.", "class": "design", "tier": "opus", "lang": "de"}
+{"task": "Prüfe diesen Pull Request auf Sicherheitslücken und Logikfehler.", "class": "review", "tier": "sonnet", "lang": "de"}
+{"task": "Sortiere diese 500 Support-Tickets nach Kategorie und gib JSON zurück.", "class": "extract", "tier": "haiku", "lang": "de"}
+{"task": "Trouve tous les fichiers qui importent le module de paiement.", "class": "lookup", "tier": "haiku", "lang": "fr"}
+{"task": "Corrige la faute de frappe dans le message d'erreur de login.py.", "class": "edit", "tier": "sonnet", "lang": "fr"}
+{"task": "Implémente la fonctionnalité de notifications : table en base, endpoints API, boîte de réception React et tests.", "class": "build", "tier": "opus", "lang": "fr"}
+{"task": "Rédige un e-mail au client pour expliquer le retard de livraison.", "class": "write", "tier": "sonnet", "lang": "fr"}
+{"task": "Conçois le plan de migration du monolithe vers des microservices.", "class": "design", "tier": "opus", "lang": "fr"}
+{"task": "Démontre que l'algorithme termine et calcule sa complexité.", "class": "frontier", "tier": "fable", "lang": "fr"}
+{"task": "Trova tutti i punti in cui viene chiamata parse_config() ed elenca i percorsi dei file.", "class": "lookup", "tier": "haiku", "lang": "it"}
+{"task": "Rivedi questa pull request e segnala i bug.", "class": "review", "tier": "sonnet", "lang": "it"}
+{"task": "Estrai nome, data e importo da ciascuna di queste fatture.", "class": "extract", "tier": "haiku", "lang": "it"}
+{"task": "Progetta l'architettura di un servizio di pagamenti istantanei ad alta disponibilità.", "class": "design", "tier": "opus", "lang": "it"}
+{"task": "भुगतान मॉड्यूल को आयात करने वाली सभी फ़ाइलें खोजें और सूची दें।", "class": "lookup", "tier": "haiku", "lang": "hi"}
+{"task": "login.py के त्रुटि संदेश में वर्तनी की गलती ठीक करें।", "class": "edit", "tier": "sonnet", "lang": "hi"}
+{"task": "इस पुल रिक्वेस्ट की समीक्षा करें और बग बताएं।", "class": "review", "tier": "sonnet", "lang": "hi"}
+{"task": "रीयल-टाइम धोखाधड़ी स्कोरिंग सेवा के लिए आर्किटेक्चर डिज़ाइन करें।", "class": "design", "tier": "opus", "lang": "hi"}
+{"task": "इन ग्राहक समीक्षाओं को सकारात्मक, नकारात्मक या तटस्थ में वर्गीकृत करें।", "class": "extract", "tier": "haiku", "lang": "hi"}
+{"task": "支払いモジュールをインポートしているファイルをすべて探して一覧にしてください。", "class": "lookup", "tier": "haiku", "lang": "ja"}
+{"task": "login.py のエラーメッセージの誤字を直してください。", "class": "edit", "tier": "sonnet", "lang": "ja"}
+{"task": "このプルリクエストをレビューしてバグを指摘してください。", "class": "review", "tier": "sonnet", "lang": "ja"}
+{"task": "通知機能を実装してください。データベースのテーブル、APIエンドポイント、Reactの受信トレイ、テストが必要です。", "class": "build", "tier": "opus", "lang": "ja"}
+{"task": "顧客に納期遅延を説明するメールを書いてください。", "class": "write", "tier": "sonnet", "lang": "ja"}
