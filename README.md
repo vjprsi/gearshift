@@ -1,5 +1,7 @@
 # gearshift
 
+[![ci](https://github.com/vjprsi/gearshift/actions/workflows/ci.yml/badge.svg)](https://github.com/vjprsi/gearshift/actions/workflows/ci.yml)
+
 Model **and effort** routing for Claude. Every task in the right gear.
 
 It picks the cheapest model tier and effort level that will actually finish a piece of work, tells you why, and gives you the next rung to try if the result isn't good enough.
