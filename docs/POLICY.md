@@ -66,7 +66,7 @@ Remove a bundled signal:
 ## Thresholds
 
 ```json
-{ "thresholds": { "act_confidence": 0.7, "min_signal": 1.5, "judge_below": 0.5, "frontier_min": 2.0 } }
+{ "thresholds": { "act_confidence": 0.7, "min_signal": 1.5, "judge_below": 0.55, "frontier_min": 2.0 } }
 ```
 
 - `act_confidence`: the Claude Code hook acts at or above this. Raise it to make the hook pickier.

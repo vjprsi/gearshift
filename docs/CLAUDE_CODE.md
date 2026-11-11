@@ -44,6 +44,23 @@ For each Agent call:
 
 The rewrite returns the documented PreToolUse output: `updatedInput` with the complete input (it replaces the whole object, so every original field is carried over) and `permissionDecision: "allow"`. Your deny and ask rules are still evaluated by Claude Code regardless. Set `GEARSHIFT_PERMISSION=ask` to be shown each rewritten call, or `none` to omit the decision.
 
+## The judge
+
+Keyword rules only know English, Spanish and Portuguese. For anything else, and for wording they don't recognise, the hook used to do nothing. Now it can ask Haiku:
+
+| `judge` | What happens on a call the keywords can't classify |
+|---|---|
+| `off` | Nothing. The call is left alone, as in 1.0. |
+| `api` | One Messages API call (Haiku, low effort, 6 second timeout) using `GEARSHIFT_API_KEY`, or `ANTHROPIC_API_KEY` if that is what you have. Use the first if you are on a subscription: exporting `ANTHROPIC_API_KEY` switches Claude Code itself to API billing. |
+| `claude` | Headless `claude -p --model haiku` on your Claude Code login. No key needed. Slower, 20 second timeout. Experimental. |
+| `auto` | `api` if the key is set, otherwise `off`. |
+
+Confident calls never reach the judge. Answers are cached in `judge_cache.json` next to the ledger, so a repeated prompt costs nothing. The ledger marks judged decisions (`"judged": true`). If the judge fails, the hook does what it did before: nothing.
+
+The headless child session runs with `GEARSHIFT_INSIDE_JUDGE=1`, and every gearshift hook exits immediately when it sees that, so the judge can't trigger itself.
+
+Start it in shadow mode like everything else: `GEARSHIFT_MODE=shadow GEARSHIFT_JUDGE=claude`, then look at `/gearshift:report`.
+
 ## Modes
 
 | Mode | Behaviour |
@@ -67,6 +84,7 @@ If you want to see its judgment before trusting it, run `shadow` for a day. That
 | `brief` | bool | `true` | Routing brief at session start. |
 | `explore` | `route` `leave` | `route` | Whether to route the built-in Explore agent. |
 | `permission` | `allow` `ask` `none` | `allow` | Decision sent with a rewritten call. |
+| `judge` | `auto` `off` `api` `claude` | `auto` | Second opinion from Haiku when the keyword rules aren't confident. `auto` is `api` when `GEARSHIFT_API_KEY` or `ANTHROPIC_API_KEY` is set, otherwise off. Cannot be set from a project file. |
 
 Where to set them, later wins:
 

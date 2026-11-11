@@ -4,7 +4,7 @@ Short answer: reliable on phrasing it knows, and it says `unsure` instead of gue
 
 ## What it is
 
-An offline classifier: about 400 lead verbs and 40 groups of phrase patterns, plus a dozen conflict rules. No model call, a few milliseconds, the same answer every time. That is why it can run inside a hook on every subagent call, and also why it is brittle to wording it has never seen.
+An offline classifier: about 750 lead verbs (English, Spanish, Portuguese) and 40 groups of phrase patterns, plus a dozen conflict rules. No model call, a few milliseconds, the same answer every time. That is why it can run inside a hook on every subagent call, and also why it is brittle to wording it has never seen.
 
 ## How it was scored
 
@@ -24,7 +24,32 @@ Then I wrote four more sets, each one before the rules that handle it, and ran e
 | 3 `cases_holdout3.jsonl` | 40 | 42.5% | 7 | 16 | Written to avoid vocabulary the classifier already knew. Led to the verb list roughly doubling to about 400, file-path masking, and repeated verbs no longer stacking. |
 | 4 `cases_holdout4.jsonl` | 40 | 90.0% | 1 | 3 | **Never tuned against.** The four misses are listed below; I left them in. |
 
-Sets 1 to 3 now score 95% or better because they were used to improve the rules. They are regression suites too. Set 4's 90.0% is the only blind score for the classifier as shipped.
+Sets 1 to 3 now score 95% or better because they were used to improve the rules. They are regression suites too. Set 4's 90.0% is the only blind English score for the classifier as shipped.
+
+## Spanish and Portuguese (1.1)
+
+I work in Colombia. Half the prompts around me are in Spanish, and 1.0 sent every one of them to `unsure`.
+
+| Set | Tasks | Before | After | Notes |
+|---|---|---|---|---|
+| `cases_es.jsonl` | 30 | 30.0% | 100% | Written first, then used to check the new verbs. A regression suite, nothing more. |
+| `cases_es_blind.jsonl` | 20 | not run | **90.0%** | Written after, run once, never tuned against. 0 under-routed. Both misses fell to `unsure`. |
+
+The two blind misses, left in: "Dime qué servicios dependen de la librería de autenticación interna." and "Necesito que revises el contrato adjunto y señales las cláusulas riesgosas."
+
+The Spanish and Portuguese verbs are mapped onto the English ones (`corrige` scores like `fix`), so the conflict rules are shared. The English sets did not move.
+
+## Other languages, and the judge (1.1)
+
+`cases_multi.jsonl` is 25 tasks in German, French, Italian, Hindi and Japanese.
+
+| Router | Right tier | Under-routed | Over-routed |
+|---|---|---|---|
+| Keywords only | 32.0% | 1 | 16 |
+| Keywords + a judge that answers correctly | 100% | 0 | 0 |
+| Keywords + the real Haiku judge | **not measured** | | |
+
+The middle row is an upper bound. It shows the plumbing works and what a perfect judge would be worth. It says nothing about how good Haiku is at this. Run `gearshift eval tests/cases_multi.jsonl --judge api` and you'll know more than I do. The one under-routed task is a proof in French that fell to `unsure`, so Opus instead of Fable.
 
 ## What the numbers mean
 
@@ -36,10 +61,11 @@ Sets 1 to 3 now score 95% or better because they were used to improve the rules.
 
 ## The safeguards that matter more than accuracy
 
-- **Haiku decisions.** Across all five sets as they stand, 0 of the 77 tasks routed to Haiku were labelled above Haiku. The rules that protect this (a change is never a lookup, a bug hunt is never a lookup, when torn go up) are tested directly in `tests/test_routing.py`.
+- **Haiku decisions.** Across the five English sets as they stand, 0 of the 77 tasks routed to Haiku were labelled above Haiku. The rules that protect this (a change is never a lookup, a bug hunt is never a lookup, when torn go up) are tested directly in `tests/test_routing.py`.
 - **The hook acts only when confident**, and only on calls that named no model. On set 4, the classifier was confident on 32 of 40 tasks and wrong in the harmful direction on 1 of those.
 - **In Claude Code the classifier is not the router.** The orchestrating model is, guided by the skill and the pinned agents. The hook covers calls it left unrouted.
-- **On the API you can add a judge**: a Haiku call at low effort that names the class, used only when the offline classifier is not confident. It handles other languages and unusual phrasing. Its accuracy has not been measured here.
+- **The judge can't override the safety rules.** Its answer goes through the same checks: a task that changes code is never `lookup`, `extract` or `chat`, and a hard-to-reproduce bug with a fix is `build`. These are tested in `tests/test_routing.py` and `tests/test_adapter.py`.
+- **A judge failure is a no-op.** Timeout, bad key, garbage reply: the decision stays `unsure`.
 
 ## Known misses
 

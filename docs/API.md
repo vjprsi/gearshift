@@ -67,7 +67,20 @@ from gearshift.judge import make_judge
 router = Router(judge=make_judge(make_call()))
 ```
 
-The judge is any callable `(task) -> class name or None`. It is consulted only when the offline classifier returns `unsure` or a confidence under 0.5. `make_judge` asks Haiku at low effort for one word. If the judge raises or returns something unknown, routing carries on without it.
+Or without the SDK at all:
+
+```python
+from gearshift.judge import judge_from_config
+router = Router(judge=judge_from_config("auto"))   # api if a key is set, else None
+```
+
+A judge is any callable that takes the task text and returns a class name, a dict like `{"class": "edit", "flags": ["mutating", "stakes"]}`, or `None`. It is consulted only when the keyword rules return `unsure` or a confidence under 0.55 (`Router(judge=..., judge_mode="always")` asks every time).
+
+`make_judge` asks Haiku at low effort for one line of JSON: the class, plus `changes_code`, `high_stakes`, `hard_bug` and `long_run`. Those become the flags `mutating`, `stakes`, `tricky` and `long_horizon`, so they move tier and effort the same way keyword evidence does. Then the safety rules run: a task that changes code is never `lookup`, `extract` or `chat`; a hard bug with a fix is `build`.
+
+Pass `cache_path=` to remember answers between processes. If the judge raises, times out or returns something unknown, routing carries on without it. `decision.classification.judged` tells you whether the judge decided.
+
+Transports: `api_transport()` is plain HTTPS with the standard library (honours `ANTHROPIC_BASE_URL`), `claude_cli_transport()` runs headless `claude -p`. Or bring your own: anything with the signature `call(model, effort, prompt, feedback=None)`.
 
 ## run: escalate on failure
 

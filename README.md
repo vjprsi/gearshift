@@ -202,9 +202,11 @@ Runs every config over your tasks (with automatic pass/fail checks) and prints p
 
 ## How much should you trust the classifier?
 
-It's keyword evidence (around 400 verbs, around 40 groups of phrase patterns), not a model. It's good on phrasing it knows, and when it doesn't know it says `unsure` instead of guessing.
+There are two layers now. The first is keyword evidence (around 750 verbs in English, Spanish and Portuguese, around 40 groups of phrase patterns). It's instant, free and offline. It's good on phrasing it knows, and when it doesn't know it says `unsure` instead of guessing. The second is an optional judge: one Haiku call at low effort, asked only when the keywords aren't confident, with safety rules on top of its answer. More on that below.
 
-I scored it on four task sets. Each one was written before the rules that handle it, and run once blind:
+The numbers in this section are for the keyword layer alone.
+
+I scored it on five task sets. Each one was written before the rules that handle it, and run once blind:
 
 | Blind run | Tasks | Right tier | Under-routed | Over-routed |
 |---|---|---|---|---|
@@ -212,23 +214,44 @@ I scored it on four task sets. Each one was written before the rules that handle
 | Set 2 | 45 | 75.6% | 3 | 8 |
 | Set 3 (written to avoid the vocabulary it knew) | 40 | 42.5% | 7 | 16 |
 | Set 4 (after widening the vocabulary; never tuned against) | 40 | 90.0% | 1 | 3 |
+| Spanish / Portuguese (after adding both languages; never tuned against) | 20 | 90.0% | 0 | 2 |
 
-Set 3 is the one to remember. With unfamiliar wording most misses were `unsure`, which means Opus on the API (safe, not cheap) and "do nothing" in the hook. Across all five labelled sets today, it hasn't sent a single task labelled above Haiku to Haiku. But the same person wrote the tasks and the rules, so treat this as a regression suite with a known blind history, not an independent benchmark. The whole story and the misses I left unfixed are in [docs/ACCURACY.md](docs/ACCURACY.md).
+Set 3 is the one to remember. With unfamiliar wording most misses were `unsure`, which means Opus on the API (safe, not cheap) and "do nothing" in the hook. Across the English sets today, it hasn't sent a single task labelled above Haiku to Haiku. But the same person wrote the tasks and the rules, so treat this as a regression suite with a known blind history, not an independent benchmark. The whole story and the misses I left unfixed are in [docs/ACCURACY.md](docs/ACCURACY.md).
 
 What I take from that:
 
 - In Claude Code the classifier is the backstop. The real router is Claude reading the skill and picking a pinned agent. The hook catches the calls it forgot.
-- On the API, other languages and odd phrasing come out `unsure`. Plug in a judge (`Router(judge=make_judge(make_call()))`), one Haiku call at low effort, only asked when the offline classifier isn't confident.
+- Anything outside English, Spanish and Portuguese, and odd phrasing in any language, comes out `unsure`. That's what the judge is for.
 - If you already know the kind of work, skip classification: `route(task, task_class="extract")`.
+
+## The judge (new in 1.1)
+
+My friend [Orlando Murcia Perdomo](https://www.linkedin.com/in/orlando-murcia-perdomo-458a291a2/) looked at 1.0 and said, more or less: keywords are a heuristic, use a small model with clear criteria and you get every language for free. He's right about the weakness. I didn't want to pay a model call on every decision though, so it's a hybrid:
+
+1. Keywords first. If they're confident, done. No model call, no latency.
+2. If they aren't, ask Haiku at low effort. It gets the class definitions from the policy file and answers with a class plus four facts: does it change code, is it high stakes, is it a hard bug, is it a long run.
+3. Safety rules run on top of the answer. A task that changes code never goes to Haiku, whatever the model said. A hard bug with a fix goes up to Opus.
+
+```bash
+export GEARSHIFT_API_KEY=sk-ant-...   # that's it. judge=auto picks it up, in the hook too
+gearshift route --judge api "Behebe den Fehler im Zahlungsmodul."
+gearshift eval tests/cases_multi.jsonl --judge api     # score it yourself: 25 tasks in German, French, Italian, Hindi, Japanese
+```
+
+(`ANTHROPIC_API_KEY` works as well, but exporting that also moves Claude Code itself onto API billing. The separate name keeps your session on your subscription and only the judge on the key.)
+
+No API key at all? `GEARSHIFT_JUDGE=claude` asks through headless Claude Code instead. It's slower (it starts a session), so it's opt-in. Answers are cached on disk, a judge error or timeout leaves the call alone, and a project file can't switch the judge on.
+
+What I have NOT measured: how often the judge is right on real traffic. Without it, those 25 multilingual tasks score 32% (almost everything falls to `unsure`, so Opus). With a judge that answers correctly they score 100%, but that only proves the wiring. The real number is whatever `gearshift eval --judge api` prints on your machine, and I'd like to see it.
 
 ## Status
 
-This is a fresh 1.0, so here's exactly where it stands:
+This is 1.1, so here's exactly where it stands:
 
-- 126 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- 147 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.
-- The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model; I don't have accuracy numbers for it on real traffic yet.
+- The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model, a local fake of the Messages API and a fake `claude` binary. I haven't run it against the real API or measured its accuracy yet, and the headless `claude` transport is the least proven part of this repo.
 
 ## vs claude-model-router
 
@@ -253,6 +276,7 @@ Raj's skill is clear and well judged, go read it. What's different here:
 | `set_effort` | `auto`, `always`, `never` | `auto` |
 | `announce` | one line per routed subagent | `true` |
 | `advise` | session-model and switch notes | `true` |
+| `judge` | `auto`, `off`, `api`, `claude` (Haiku second opinion when the keywords are unsure) | `auto` |
 | `brief` | routing brief in context at session start | `true` |
 | `explore` | `route` or `leave` the built-in Explore agent | `route` |
 
@@ -262,7 +286,8 @@ Changing the table itself: [docs/POLICY.md](docs/POLICY.md).
 
 ## Limits
 
-- The offline classifier is English only. Spanish verbs are the obvious next step. Until then, use a judge.
+- The keyword layer knows English, Spanish and Portuguese. Everything else needs the judge, and without it comes out `unsure` (Opus on the API, untouched in the hook).
+- The judge sends the first 1,500 characters of the subagent prompt to the Anthropic API. Same vendor your session already talks to, but it's one more call, so it's off unless a key is set or you opt in.
 - It only sees the task text. It can't know "fix the flaky test" already failed twice. The ladder and the `ESCALATE:` convention deal with that, not the first route.
 - Prices are list prices from Anthropic's pricing page as of 2026-11-10. No fast mode, no US-only multiplier, no negotiated rates. Update `src/gearshift/data/models.json` when a new generation ships.
 - On a subscription the dollar figures are relative weight, not your bill.

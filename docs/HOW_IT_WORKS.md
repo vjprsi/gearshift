@@ -127,6 +127,6 @@ The Claude Code hook wraps the router in a set of refusals. It does nothing when
 ## 9. What it doesn't do, on purpose
 
 - **It does not switch your session model.** It will tell you, once, when the work and the model are clearly mismatched, and it shows the cost before a switch you start. The decision is yours.
-- **It does not call a model to classify** unless you give it a judge. A router that spends tokens on every decision has to earn them back.
+- **It does not call a model on every decision.** The judge is asked only when the keyword rules aren't confident, and only if you have it on. A router that spends tokens on every decision has to earn them back.
 - **It does not learn from outcomes.** There is no feedback loop from the ledger to the policy. Measure with `bench`, then edit the JSON.
 - **It does not claim savings.** The report prices what ran. The comparison figure is labelled as a comparison.
