@@ -269,11 +269,43 @@ There's also a built-in benchmark now: `gearshift bench pack` runs 31 tasks with
 
 I ran it once on the real models. All six configs passed all 31 tasks, so the pack only measured cost: the router was 8.8x cheaper than always-Fable and 2.9x cheaper than always-Opus, and always-Haiku was 13x cheaper than the router. In other words, on small self-contained tasks the table over-spends, and this pack is too easy to show where the cheap models break. The full table and what I make of it: [docs/RESULTS.md](docs/RESULTS.md).
 
+## Finding out if the table is too generous (new in 1.3)
+
+The benchmark above embarrassed my table: Haiku passed everything the router had sent to Sonnet and Opus. One pack of small tasks doesn't prove the table is wrong for real work, but it does mean I shouldn't assume it's right for yours. So the router can now test itself.
+
+```bash
+export GEARSHIFT_PROBE=0.1      # off by default
+```
+
+With that on, one in ten *safe* subagent calls is sent one step cheaper than the table says, on purpose, with the `ESCALATE:` hint attached. Safe means read-only work that is cheap to redo: never a code change, never anything touching production, money or auth, never a hard bug, never a call where you named a model. If the cheaper step can't cope it says so, and the hook tells Claude to re-run it one step up.
+
+After a while `gearshift tune` has two kinds of evidence:
+
+```
+Probes (safe calls sent one step cheaper on purpose):
+class     ran on         instead of      runs  fell short   verdict
+review    sonnet@medium  sonnet@high       20    0 (  0%)   held up; review can move down to sonnet@medium
+```
+
+(Example from the test data.) It still applies nothing, and it tells you to read a few of the probe results yourself first, because the ledger sees escalations and errors, not wrong answers. As far as I can tell, the other Claude Code routers either use a fixed table or learn on someone else's server. This one learns from your own runs, on your machine, in both directions.
+
+### Status line
+
+```bash
+gearshift statusline --install     # prints the snippet for ~/.claude/settings.json
+```
+
+```
+gearshift fill | 3 routed: haiku 2, sonnet 1 | subagents $0.015 (session rates $0.31) | 1 escalated
+```
+
+What was routed where in this session, what the subagents cost, what the same tokens would have cost at your session model's rates, and how many asked to escalate. It reads the tail of the ledger and never raises.
+
 ## Status
 
-This is 1.2, so here's exactly where it stands:
+This is 1.3, so here's exactly where it stands:
 
-- 171 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- 186 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.
 - The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model, a local fake of the Messages API and a fake `claude` binary. It has now run against the real API too (numbers in [docs/RESULTS.md](docs/RESULTS.md)). The headless `claude` transport has still only met a fake binary.
@@ -303,6 +335,7 @@ Raj's skill is clear and well judged, go read it. What's different here:
 | `advise` | session-model and switch notes | `true` |
 | `judge` | `auto`, `off`, `api`, `claude` (Haiku second opinion when the keywords are unsure) | `auto` |
 | `hint` | add the `ESCALATE:` line to prompts the hook routes down | `true` |
+| `probe` | share (0 to 0.5) of safe read-only calls sent one step cheaper, to test the table | `0` |
 | `brief` | routing brief in context at session start | `true` |
 | `explore` | `route` or `leave` the built-in Explore agent | `route` |
 

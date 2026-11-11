@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 (2026-11-10)
+
+- Probing (`probe`, off by default): a share of safe, read-only calls goes one rung cheaper than the policy says, with the escalate hint, so the table can be tested on real work. Never code changes, never high-stakes work, never calls that named a model.
+- `gearshift tune` now reads probes too and can propose moving a class down when its probes held up. It still applies nothing.
+- `gearshift statusline`: one line for Claude Code's status bar with routed calls by tier, subagent spend and escalations. `--install` prints the settings snippet.
+- CI: the Ubuntu image dropped Python 3.9, so that job tests 3.11; 3.9 stays covered on macOS and Windows.
+
+Not done: probing and the status line have only run against test payloads.
+
 ## 1.2.1 (2026-11-10)
 
 - First real runs, published in `docs/RESULTS.md`: the judge on four labelled sets, and the benchmark pack on Haiku, Sonnet, Opus, Fable, the router and the cascade.

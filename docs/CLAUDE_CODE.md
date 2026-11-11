@@ -84,6 +84,18 @@ gearshift tune --all --min-runs 10 --raise-at 0.2
 
 It groups finished runs by task class and the tier they ran on, and proposes a raise only when a class has enough runs on its home tier and too many fell short. The output ends with the JSON to merge into `~/.config/gearshift/policy.json`. Nothing is applied for you.
 
+## Probing
+
+Off by default. `GEARSHIFT_PROBE=0.1` (or `"probe": 0.1` in `~/.config/gearshift/config.json`) sends about one in ten eligible calls one rung down the ladder: `sonnet@high` becomes `sonnet@medium`, `sonnet@medium` becomes `haiku@high`.
+
+A call is eligible only if all of this holds: the keyword rules were confident; the class is not `edit`, `build`, `frontier` or `unsure`; none of the flags `mutating`, `stakes`, `tricky`, `long_horizon`, `computer_use`, `ambiguous`, `major`, `multi_file` is set; the call named no model and no effort; it is not a retry; the mode is not `strict`. The choice is a hash of the call id, so it is repeatable.
+
+A probed call always gets the escalate hint, is announced as a probe, and is logged with `probe_from`. `gearshift tune` judges probes separately from normal runs: with 15 or more probes of a class at a rung and at most 5% falling short, it proposes moving the class down; at 15% or more falling short it says to leave it.
+
+## Status line
+
+`gearshift statusline --install` prints the `statusLine` entry for `~/.claude/settings.json` with this machine's paths filled in. Claude Code passes session JSON on stdin; the command uses `session_id` (and the project directory if present) and reads the last 512 KB of the ledger. I built it from the documented input and tested it with sample payloads; it has not been checked in a live status bar yet.
+
 ## Modes
 
 | Mode | Behaviour |
@@ -109,6 +121,7 @@ If you want to see its judgment before trusting it, run `shadow` for a day. That
 | `permission` | `allow` `ask` `none` | `allow` | Decision sent with a rewritten call. |
 | `judge` | `auto` `off` `api` `claude` | `auto` | Second opinion from Haiku when the keyword rules aren't confident. `auto` is `api` when `GEARSHIFT_API_KEY` or `ANTHROPIC_API_KEY` is set, otherwise off. Cannot be set from a project file. |
 | `hint` | `true` `false` | `true` | When the hook routes a call to a cheaper model, append one line telling the subagent to answer `ESCALATE:` if the task is beyond it. A project file can switch it off. |
+| `probe` | `0` to `0.5` | `0` | Share of safe, read-only calls sent one rung cheaper than the policy says. See Probing. Cannot be set from a project file. |
 
 Where to set them, later wins:
 

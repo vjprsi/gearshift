@@ -12,7 +12,7 @@ from .policy import EFFORTS, TIERS, Policy, default_policy, load_policy
 from .pricing import cost_usd, resolve_model, tier_of
 from .router import Decision, Router, route
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 __all__ = [
     "Attempt", "BatchResult", "CallResult", "Classification", "Decision", "EFFORTS",
