@@ -435,6 +435,32 @@ class LivePayloads(unittest.TestCase):
         self.assertIn("background: 1 launched", text)
         self.assertIn("more work sent to a running agent (SendMessage): 1 sent, 1 finished", text)
 
+    # -- 2.0.0: probing the pinned reviewer, from the seeded-defect review sessions ----------
+
+    def test_the_pinned_reviewer_is_probed_on_the_calls_the_coin_picks(self):
+        pre, launch, stop = LIVE["probed"]
+        self.assertEqual(pre["payload"]["tool_input"]["subagent_type"], "gearshift:reviewer")
+        self.assertNotIn("effort", pre["payload"]["tool_input"])
+        out = self.send(pre, GEARSHIFT_PROBE="0.5")
+        hso = out["hookSpecificOutput"]
+        self.assertEqual(hso["updatedInput"]["effort"], "medium")
+        self.assertNotIn("model", hso["updatedInput"], "effort only: the reviewer stays on Sonnet")
+        self.assertEqual(hso["updatedInput"]["prompt"], pre["payload"]["tool_input"]["prompt"], "the brief is not touched")
+        self.assertIn("probe", hso["additionalContext"])
+        route = self.events("route")[-1]
+        self.assertEqual((route["action"], route["probe_from"], route["probe_agent"], route["effort"]),
+                         ("probed", "sonnet@high", "gearshift:reviewer", "medium"))
+        self.send(launch, GEARSHIFT_PROBE="0.5")
+        self.assertIsNone(self.send(stop, GEARSHIFT_PROBE="0.5"))
+        self.assertEqual(self.events("done")[-1]["tool_use_id"], pre["payload"]["tool_use_id"])
+
+    def test_the_other_half_and_everyone_with_probing_off_run_as_pinned(self):
+        pre = LIVE["not_probed"][0]
+        self.assertIsNone(self.send(pre, GEARSHIFT_PROBE="0.5"))
+        self.assertEqual(self.events("route")[-1]["action"], "pinned")
+        self.assertIsNone(self.send(LIVE["probed"][0]))
+        self.assertEqual(self.events("route")[-1]["action"], "pinned")
+
 
 if __name__ == "__main__":
     unittest.main()

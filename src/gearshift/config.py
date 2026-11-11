@@ -30,6 +30,9 @@ make my subagents more expensive.
               time is logged as "timeout" and the result counts as unchecked, not as failed.
   probe       0 (default) to 0.5 - share of safe, read-only calls sent one step CHEAPER than
               the table says, to find out whether the table is too generous for your work.
+              Since 2.0 the same share of gearshift:reviewer calls runs one effort step down
+              (sonnet@medium for sonnet@high), never on another model, and never when the brief
+              mentions money, security or a hard-to-reproduce bug.
               Off unless you turn it on. Not settable from a project file.
   judge       auto (default) | off | api | claude
               LLM second opinion when the keyword rules aren't confident.

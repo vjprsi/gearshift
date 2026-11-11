@@ -63,6 +63,36 @@ class Probe(unittest.TestCase):
             self.assertNotIn("probe_from", probed, task["description"])
             self.assertEqual((probed["model"], probed["effort"]), (base["model"], base["effort"]))
 
+    # -- 2.0.0: the pinned reviewer, effort only --------------------------------------------
+
+    PINNED_REVIEW = {"subagent_type": "gearshift:reviewer", "description": "Review milestone 3 diff",
+                     "prompt": "Review the uncommitted diff (git diff) against SPEC.md milestone 3: argument parsing, "
+                               "exit codes, output format. List bugs and how to fix each. Do not edit."}
+
+    def test_the_pinned_reviewer_is_probed_one_effort_step_down_and_never_on_another_model(self):
+        base, probed = decide(self.PINNED_REVIEW, False), decide(self.PINNED_REVIEW, True)
+        self.assertEqual((base["action"], base["updated"]), ("pinned", None))
+        self.assertEqual(probed["action"], "probed")
+        self.assertEqual((probed["probe_from"], probed["probe_agent"], probed["effort"]),
+                         ("sonnet@high", "gearshift:reviewer", "medium"))
+        self.assertEqual(probed["updated"], dict(self.PINNED_REVIEW, effort="medium"))
+        self.assertNotIn("model", probed["updated"], "the reviewer stays on its own model")
+
+    def test_the_pinned_probe_keeps_away_from_risky_reviews_and_other_agents(self):
+        risky = dict(self.PINNED_REVIEW, prompt="Review the payment retry diff (git diff) for duplicate charges. Do not edit.")
+        tricky = dict(self.PINNED_REVIEW, prompt="Review the diff (git diff); check thread safety of the cache. Do not edit.")
+        for task in (risky, tricky, dict(self.PINNED_REVIEW, subagent_type="gearshift:fixer"),
+                     dict(self.PINNED_REVIEW, subagent_type="gearshift:scout"),
+                     dict(self.PINNED_REVIEW, subagent_type="gearshift:architect"),
+                     dict(self.PINNED_REVIEW, effort="high"), dict(self.PINNED_REVIEW, model="sonnet")):
+            d = decide(task, True)
+            self.assertNotIn("probe_from", d, task)
+            self.assertIsNone(d["updated"], task)
+        self.assertNotIn("probe_from", decide(self.PINNED_REVIEW, True, mode="strict"))
+        self.assertNotIn("probe_from", decide(self.PINNED_REVIEW, True, set_effort="never"))
+        shadow = decide(self.PINNED_REVIEW, True, mode="shadow")
+        self.assertEqual((shadow["action"], shadow["updated"]), ("shadow", None))
+
     def test_probe_respects_an_explicit_model_and_strict_mode(self):
         self.assertNotIn("probe_from", decide(dict(REVIEW, model="sonnet"), True))
         self.assertNotIn("probe_from", decide(REVIEW, True, mode="strict"))
@@ -121,6 +151,23 @@ class State(unittest.TestCase):
         t = build_tune(self.state, policy=POL)
         self.assertIsNone(t["policy_overrides"])
         self.assertIn("not enough probes", t["probes"][0]["verdict"])
+
+    def test_tune_files_a_pinned_probe_under_the_agent_and_never_proposes_a_policy_change_for_it(self):
+        for i in range(20):
+            tid = "pp-%d" % i
+            ledger.append_event(self.state, {"ev": "route", "tool_use_id": tid, "class": "edit", "action": "probed",
+                                             "agent_type": "gearshift:reviewer", "pinned_model": "sonnet",
+                                             "pinned_effort": "high", "effort": "medium", "probe_from": "sonnet@high",
+                                             "probe_agent": "gearshift:reviewer", "session": "s1"})
+            ledger.append_event(self.state, {"ev": "done", "tool_use_id": tid, "agent_id": "a" + tid, "session": "s1"})
+        t = build_tune(self.state, policy=POL)
+        self.assertEqual(t["rows"], [])
+        row = t["probes"][0]
+        self.assertEqual((row["class"], row["ran"], row["instead_of"], row["runs"]),
+                         ("gearshift:reviewer", "sonnet@medium", "sonnet@high", 20))
+        self.assertIn("cannot see a missed finding", row["verdict"])
+        self.assertIsNone(t["policy_overrides"])
+        self.assertIn("probes (one step cheaper on purpose): 20", ledger.format_report(ledger.build_report(self.state)))
 
     def test_probes_do_not_count_against_the_home_tier(self):
         self.probes(20, 20)      # every probe failed: that says nothing about sonnet@high itself

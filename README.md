@@ -286,6 +286,8 @@ export GEARSHIFT_PROBE=0.1      # off by default
 
 With that on, one in ten *safe* subagent calls is sent one step cheaper than the table says, on purpose, with the `ESCALATE:` hint attached. Safe means read-only work that is cheap to redo: never a code change, never anything touching production, money or auth, never a hard bug, never a call where you named a model. If the cheaper step can't cope it says so, and the hook tells Claude to re-run it one step up.
 
+Since 2.0 the probe also reaches `gearshift:reviewer`, which is where the reviews really go: the same share of its calls runs one effort step down (sonnet@medium for sonnet@high), on the same model, under the same safety rules. I ran that on 18 reviews of diffs with planted defects; the numbers are in [docs/RESULTS.md](docs/RESULTS.md) and they do not separate the two efforts.
+
 After a while `gearshift tune` has two kinds of evidence:
 
 ```
@@ -333,7 +335,7 @@ gearshift fill | 18 subagents: haiku 15, sonnet 3 | $0.976 vs $2.52 at session r
 
 This is 1.4, so here's exactly where it stands:
 
-- 242 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents, and since 1.4.2 with payloads recorded from real sessions), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- 247 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents, and since 1.4.2 with payloads recorded from real sessions), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - Background subagents and `verify` are verified live, headless, on Windows (five sessions, Claude Code 2.1.322): launch and finish pair up by agent id, a failing check holds the subagent and hands it the output, it can fix the problem and leave, `ESCALATE:` is recorded, and the same task sent again starts one rung up. Five things were wrong and are fixed in 1.4.2; two of those fixes have only met tests since. 1.4.3 adds one more live check: a model or effort passed on a call wins over a pinned agent's definition, so a gearshift agent that answered `ESCALATE:` and is sent the same task again runs one rung up (haiku@medium, haiku@high, sonnet@medium in the run). That `ESCALATE:` was scripted. Not verified live: a subagent escalating on its own, any of this in an interactive session, `tune`. Details in [docs/RESULTS.md](docs/RESULTS.md).
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - First full working session on macOS (18 subagent runs, 61% lower than session rates on the delegated part, numbers in [docs/RESULTS.md](docs/RESULTS.md)). In that session Claude picked the pinned agents itself every time, so the hook had nothing to change.
@@ -366,7 +368,7 @@ Raj's skill is clear and well judged, go read it. What's different here:
 | `advise` | session-model and switch notes | `true` |
 | `judge` | `auto`, `off`, `api`, `claude` (Haiku second opinion when the keywords are unsure) | `auto` |
 | `hint` | add the `ESCALATE:` line to prompts the hook routes down | `true` |
-| `probe` | share (0 to 0.5) of safe read-only calls sent one step cheaper, to test the table | `0` |
+| `probe` | share (0 to 0.5) of safe read-only calls sent one step cheaper, to test the table; the same share of `gearshift:reviewer` calls runs one effort step down | `0` |
 | `verify` | a command to run after a subagent changes code; a failure is reported to Claude | off |
 | `verify_timeout` | seconds the check may take, 5 to 120; running out of time is logged as `timeout`, not as a failure | `25` |
 | `brief` | routing brief in context at session start | `true` |

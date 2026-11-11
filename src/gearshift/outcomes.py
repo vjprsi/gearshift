@@ -139,6 +139,14 @@ def probe_ok(task_class: str, flags: Iterable[str]) -> bool:
     return task_class not in _NO_PROBE_CLASSES and not (_NO_PROBE_FLAGS & set(flags))
 
 
+def pinned_probe_ok(flags: Iterable[str]) -> bool:
+    """May a pinned reviewer run one effort step down on this task?
+
+    The class is not asked: review briefs often read as code changes ("...and how to fix it").
+    The flags are: nothing where a missed finding is expensive or the bug is the hard kind."""
+    return not ({"stakes", "tricky", "long_horizon", "computer_use", "ambiguous", "major"} & set(flags))
+
+
 def sampled(key: str, share: float) -> bool:
     """Deterministic coin flip, so a given call always gets the same answer."""
     if share <= 0:
@@ -180,10 +188,10 @@ def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]
             continue
         runs.append({
             "class": r.get("class") or "unsure", "tier": tier, "effort": effort,
-            "routed_by": "gearshift" if r.get("action") in ("filled", "overrode", "effort-only", "bumped") else "claude",
+            "routed_by": "gearshift" if r.get("action") in ("filled", "overrode", "effort-only", "bumped", "probed") else "claude",
             "escalated": bool(d.get("escalated")), "failed": bool(d.get("failed") or d.get("verify") == "fail"),
             "retried_higher": r["tool_use_id"] in retried_higher,
-            "probe_from": r.get("probe_from"),
+            "probe_from": r.get("probe_from"), "probe_agent": r.get("probe_agent"),
             "cost_usd": u.get("cost_usd"),
         })
     return runs
@@ -207,7 +215,9 @@ def build_tune(state: Path, *, days: Optional[float] = 30, min_runs: int = 20, r
     for r in runs:
         if r.get("probe_from"):
             # a deliberate step down. judged on its own, not mixed into the class's record
-            p = probes.setdefault((r["class"], "%s@%s" % (r["tier"], r["effort"]), r["probe_from"]),
+            # a probe of a pinned agent is filed under the agent: its effort lives in the agent's
+            # definition, not in the class table
+            p = probes.setdefault((r.get("probe_agent") or r["class"], "%s@%s" % (r["tier"], r["effort"]), r["probe_from"]),
                                   {"runs": 0, "short": 0})
             p["runs"] += 1
             p["short"] += bool(r["escalated"] or r["failed"] or r["retried_higher"])
@@ -254,6 +264,10 @@ def build_tune(state: Path, *, days: Optional[float] = 30, min_runs: int = 20, r
             now = pol.classes.get(cls, {})
             if rate >= raise_at:
                 row["verdict"] = "the cheaper step falls short too often; keep %s on %s" % (cls, home)
+            elif ":" in cls:
+                row["verdict"] = ("no escalations or failures, but the ledger cannot see a missed finding: "
+                                  "compare a few of these reviews by hand before lowering the agent's effort"
+                                  if rate <= 0.05 else "mixed; keep probing")
             elif rate <= 0.05 and cls not in overrides and "%s@%s" % (now.get("tier"), now.get("effort")) == home:
                 row["verdict"] = "held up; %s can move down to %s" % (cls, ran)
                 lower[cls] = {"tier": t, "effort": e}

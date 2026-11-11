@@ -302,6 +302,7 @@ _ACTION_LABELS = [
     ("overrode", "model replaced (strict mode)"),
     ("effort-only", "effort set, model left alone"),
     ("bumped", "gearshift agent re-run one step up after falling short"),
+    ("probed", "gearshift reviewer run one effort step down on purpose (probe)"),
     ("kept", "orchestrator's own choice kept"),
     ("pinned", "agent pinned by its definition"),
     ("inherit", "left on the session model"),

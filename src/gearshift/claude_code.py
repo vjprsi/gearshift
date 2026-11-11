@@ -41,6 +41,9 @@ ROUTABLE_BUILTINS = {"general-purpose", "claude", "Explore"}
 NEVER_ROUTE = {"Plan", "statusline-setup", "claude-code-guide", "fork"}
 EFFORT_PARAM_MIN_VERSION = (2, 1, 292)
 VERIFY_TIMEOUT = 25      # seconds; the hook itself is cut off at 30
+# pinned agents a probe may step down, by effort only. The reviewer is the steady repeat cost in
+# every live run, and its model is never touched: smaller models miss more in review.
+PROBE_PINNED = ("gearshift:reviewer",)
 
 _BRIEF = (
     "The gearshift plugin is active in this session. It routes delegated work by task type: "
@@ -326,6 +329,22 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
         if (retry_from and have_model is None and agent_type.startswith("gearshift:")
                 and fm.get("model") in TIERS):
             _bump_pinned(rec, tool_input, fm, retry_from, cfg, session_tier, version, router)
+        elif (probe and not retry_from and agent_type in PROBE_PINNED and have_model is None
+              and have_effort is None and cfg["mode"] != "strict" and _can_set_effort(cfg, version)
+              and fm.get("model") in TIERS and fm.get("effort") in EFFORTS
+              and outcomes.pinned_probe_ok(d.flags)):
+            # all real traffic goes to pinned agents, so the probe has to reach them or it never
+            # runs. Checked live: effort on the call wins over the agent's definition.
+            down = outcomes.prev_rung(fm["model"], fm["effort"], router.policy)
+            if down and down[0] == fm["model"]:
+                rec["probe_from"] = "%s@%s" % (fm["model"], fm["effort"])
+                rec["probe_agent"] = agent_type
+                rec["effort"] = down[1]
+                rec["want_tier"], rec["want_effort"] = down
+                if cfg["mode"] == "shadow":
+                    rec["action"] = "shadow"
+                else:
+                    rec["action"], rec["updated"] = "probed", dict(tool_input, effort=down[1])
         return rec
 
     bumped = None
@@ -443,7 +462,8 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
                             probe=prior is None and outcomes.sampled(str(inp.get("tool_use_id") or desc), cfg["probe"]))
     rec.pop("decision")
     updated = rec.pop("updated")
-    if updated is not None and cfg.get("hint") and (rec["action"] in ("filled", "overrode") or rec.get("probe_from")) \
+    if updated is not None and cfg.get("hint") and rec["action"] != "probed" \
+            and (rec["action"] in ("filled", "overrode") or rec.get("probe_from")) \
             and outcomes.HINT not in str(updated.get("prompt") or ""):
         # a cheaper model than the one that asked: give it a way to say "too hard for me"
         updated["prompt"] = str(updated.get("prompt") or "").rstrip() + "\n\n" + outcomes.HINT
@@ -572,9 +592,11 @@ def on_pre_message(inp: Mapping[str, Any]) -> Optional[dict]:
             t["done"], t["cur"], t["mut_now"] = False, inp.get("tool_use_id"), mutating
             t["turn"] = int(t.get("turn") or 1) + 1
     save_session(sid, st)
-    _log({"ev": "continue", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
-          "of": task.get("id"), "agent_id": task.get("agent"), "desc": summary[:80], "class": d.task_class,
-          "confidence": d.confidence, "mutating": mutating, "turn": int(task.get("turn") or 2)})
+    event = {"ev": "continue", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
+             "of": task.get("id"), "agent_id": task.get("agent"), "desc": summary[:80], "class": d.task_class,
+             "confidence": d.confidence, "mutating": mutating, "turn": int(task.get("turn") or 2),
+             "tier": task.get("tier")}
+    _log(event)
     return None
 
 

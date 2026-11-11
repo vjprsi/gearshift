@@ -224,6 +224,31 @@ What would be a different experiment: refusing the SendMessage with a reason, so
 
 The `continue` line in the ledger now records the tier the running agent is on, so a report can at least show how much follow-up work rode on Opus.
 
+### Probing the pinned reviewer: effort down one step, defects counted
+
+Since 1.3 a share of safe calls can run one step cheaper on purpose. It never fired in real use, because it skipped pinned agents and Claude sends everything to pinned agents. 1.4.3 showed that an effort passed on the call wins over the agent's definition, so 2.0 lets the probe reach `gearshift:reviewer`: with `probe` on, that share of reviewer calls runs at sonnet@medium in place of sonnet@high. Never another model, and never when the brief mentions money, auth, production or a hard-to-reproduce bug.
+
+To see what that costs in findings I planted defects. Three real milestone diffs from the run 3 repo (store and stats, CLI, HTTP server), left uncommitted, with 11 lines changed so the code is wrong: 9 against a spec line (an alias may be 64 characters where the spec says 32, an expired link answers 404 where it says 410, import never counts skipped codes) and 2 that the spec does not spell out (import accepts any `created_at`, no limit on request body size). The tests that would catch them were removed, so the suite was green. Then 18 headless sessions, 6 per diff: a Haiku session calls `gearshift:reviewer` once with the same brief, `probe` at 0.5, and the hook's own coin decides the effort.
+
+| | sonnet@high (as pinned) | sonnet@medium (probed) |
+|---|---|---|
+| Reviews | 11 | 7 |
+| Planted defects found | 37 of 39 (95%) | 25 of 27 (93%) |
+| Store and stats diff, 4 defects | 12 of 12 in 3 reviews | 12 of 12 in 3 reviews |
+| CLI diff, 3 defects | 15 of 15 in 5 reviews | 3 of 3 in 1 review |
+| Server diff, 4 defects | 10 of 12 in 3 reviews | 10 of 12 in 3 reviews |
+| Average cost of a review | $0.076 | $0.058 |
+| Numbered findings per review | 6.1 | 5.7 |
+
+Graded by matching each planted defect in the reviewer's reply and reading every match on the CLI and server diffs.
+
+- **The mechanism works live.** The hook rewrote 7 of 18 calls to effort medium and logged them as probes. The reviewer ran in the background each time and the result was read at SubagentStop.
+- **No difference in defects found, and that is weak evidence.** Ten of the eleven defects were found by every review at both efforts. They were too easy: a spec line next to a constant. The one that separated anything, the missing body size limit, was found once in three at each effort.
+- Medium cost about a quarter less per review ($0.058 against $0.076) and wrote slightly shorter reports.
+- The coin gave the CLI diff five reviews at high and one at medium. I did not top it up.
+
+What this does not show: that medium is safe on a diff with subtle bugs, on a long diff, or on anything the probe refuses to touch. `tune` files these probes under the agent and will not propose lowering it: it says to compare reviews by hand, because the ledger cannot see a finding that was missed. The 18 sessions cost $1.39.
+
 ### The first five minutes
 
 Three things I tripped over myself on this machine, now in `doctor`:
@@ -236,4 +261,4 @@ These are tested, and run by me on Windows. Nobody else has pasted a bundle yet.
 
 ## What it cost
 
-Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45. Run 4 was $5.77.
+Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45. Run 4 was $5.77. The 18 seeded-defect reviews were $1.39.
