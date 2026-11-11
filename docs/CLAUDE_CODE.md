@@ -1,0 +1,145 @@
+# gearshift in Claude Code
+
+## Install
+
+```text
+/plugin marketplace add vjprsi/gearshift
+/plugin install gearshift@gearshift
+```
+
+Requirements:
+
+- Claude Code 2.1.251 or newer (the model-switch hooks need it). Setting effort per Agent call needs 2.1.292; on older versions the hook sets the model only.
+- Python 3.9+ on PATH for the hook and the commands. The launcher tries `python3`, `python`, then `py`; set `GEARSHIFT_PYTHON` to choose one.
+- On Windows, Git Bash (Claude Code's default shell for hooks).
+
+Check with `/gearshift:doctor`. To try the plugin for one session without installing: `claude --plugin-dir /path/to/gearshift`.
+
+## What gets installed
+
+| Piece | What it does |
+|---|---|
+| Skill `gearshift:routing` | The routing table, guards, when not to delegate, the ladder. Loaded by the model before it delegates. |
+| Agents `gearshift:scout`, `sorter`, `fixer`, `reviewer`, `builder`, `architect`, `prover` | Subagents with model and effort fixed in their definitions. |
+| Hook: SessionStart | Remembers the session model; adds a short routing brief (about 300 tokens) to context. |
+| Hook: PreToolUse on Agent | Fills in model and effort on calls that left them unset. |
+| Hook: PostToolUse on Agent | Records which model actually ran. |
+| Hook: SubagentStop | Totals the subagent's tokens and cost from its transcript. Runs in the background. |
+| Hook: UserPromptSubmit | One line of advice on a clear session-model mismatch, once per session. |
+| Hook: PreModelSwitch / PostModelSwitch | Shows what a mid-session switch re-sends; remembers the new model. |
+| Commands `/gearshift:route`, `/gearshift:report`, `/gearshift:doctor` | Explain a route, show the ledger, check the install. |
+
+## The PreToolUse hook, step by step
+
+For each Agent call:
+
+1. **Skip** if mode is `off`, or the agent type is `Plan`, `fork`, `statusline-setup` or `claude-code-guide`.
+2. **Leave alone** if the agent's definition sets a model (anything other than `inherit`), if it belongs to another plugin, or if its definition cannot be found. `gearshift:*` agents are pinned by definition.
+3. **Classify** the task from `description` and `prompt`.
+4. **Leave alone** if the class is `unsure` or confidence is under 0.55.
+5. **Apply the ceiling.** With the default `ceiling=session`, a route above the session's tier stays on the session model and gets one more effort level instead. If the session model is unknown, only Haiku and Sonnet routes are applied.
+6. **Model:** in `fill` mode, set it only if the call named none. In `strict` mode, also replace one that differs. If the route equals the session tier, leave `model` unset so the subagent inherits the exact session model.
+7. **Effort:** set it if the call named none, the agent's definition has none, the Claude Code version accepts the parameter, and `CLAUDE_CODE_EFFORT_LEVEL` is not set.
+8. **Rewrite** the call if anything changed, record the decision in the ledger, and (if `announce` is on) show one line such as `gearshift: Explore -> haiku@medium (lookup, confidence 1.00)`.
+
+The rewrite returns the documented PreToolUse output: `updatedInput` with the complete input (it replaces the whole object, so every original field is carried over) and `permissionDecision: "allow"`. Your deny and ask rules are still evaluated by Claude Code regardless. Set `GEARSHIFT_PERMISSION=ask` to be shown each rewritten call, or `none` to omit the decision.
+
+## Modes
+
+| Mode | Behaviour |
+|---|---|
+| `off` | Hooks do nothing. Agents and skill still available. |
+| `shadow` | Classify and log, change nothing. `/gearshift:report` shows what would have happened. |
+| `fill` | Default. Fill in what the orchestrator left unset. |
+| `strict` | Also replace a model the orchestrator chose when it disagrees with the task class. |
+
+If you want to see its judgment before trusting it, run `shadow` for a day. That's what I'd do.
+
+## Settings
+
+| Setting | Values | Default | Meaning |
+|---|---|---|---|
+| `mode` | `off` `shadow` `fill` `strict` | `fill` | Above. |
+| `ceiling` | `session` `haiku` `sonnet` `opus` `fable` | `session` | Highest tier the hook may assign. It limits the hook's own choices; a model the orchestrator passes explicitly is not capped in `fill` mode. |
+| `set_effort` | `auto` `always` `never` | `auto` | `auto` sets effort only on Claude Code 2.1.292+. |
+| `announce` | bool | `true` | One line per routed subagent. |
+| `advise` | bool | `true` | Mismatch and model-switch notes. |
+| `brief` | bool | `true` | Routing brief at session start. |
+| `explore` | `route` `leave` | `route` | Whether to route the built-in Explore agent. |
+| `permission` | `allow` `ask` `none` | `allow` | Decision sent with a rewritten call. |
+
+Where to set them, later wins:
+
+1. `~/.config/gearshift/config.json`
+2. The plugin's options (`/plugin`, then gearshift, then configure): mode, ceiling, announce, advise
+3. Environment: `GEARSHIFT_MODE`, `GEARSHIFT_CEILING`, and so on
+4. `<project>/.gearshift.json`, **conservative only**: it can set mode to `off` or `shadow`, lower the ceiling, turn `announce`/`advise`/`brief` off, set `explore` to `leave`, and override the policy. It cannot select `strict` or raise the ceiling, and a policy override still cannot route above your ceiling. A repo you just cloned shouldn't be able to make your subagents cost more.
+
+## How it interacts with Claude Code's own settings
+
+- **`CLAUDE_CODE_EFFORT_LEVEL`** overrides per-subagent effort, so gearshift does not set effort while it is present.
+- **`CLAUDE_CODE_SUBAGENT_MODEL`** is the fallback for subagents with no model. A model set on the call (which is what the hook does) comes first. With `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`, Claude Code's forced model may apply regardless; `/gearshift:report` shows which model actually ran.
+- **`availableModels`** in managed settings can block a tier. Claude Code then substitutes or falls back to the inherited model. The ledger records the model that ran.
+- **Tier aliases differ by provider.** On Bedrock, Vertex and Foundry, `haiku` and `sonnet` may resolve to older models. Pin them with `ANTHROPIC_DEFAULT_HAIKU_MODEL` and friends if you want specific versions.
+- **Other PreToolUse hooks on Agent.** Hooks run in parallel and Claude Code does not document how several `updatedInput` results combine. If another plugin also rewrites Agent calls, run gearshift in `shadow` mode or remove one of them.
+
+## The ledger
+
+Events are appended to `~/.claude/gearshift/events.jsonl` (override with `GEARSHIFT_HOME`). Nothing leaves your machine. Each line is one of:
+
+- `route`: the decision for an Agent call and what the hook did (`filled`, `kept`, `pinned`, `inherit`, `low-confidence`, `shadow`, `overrode`, `effort-only`, `skipped`). Includes the first 80 characters of the call's description.
+- `done`: the model Claude Code reports as resolved, duration and tool-call count.
+- `usage`: per-model token totals and list-price cost, read from the subagent's transcript, where every request is counted once (streamed lines for the same response are de-duplicated).
+- `session`: session start and model switches.
+
+`gearshift report` (or `/gearshift:report`) joins them:
+
+```text
+gearshift report - last 7 days
+
+Agent calls seen: 42
+    27  model filled in by gearshift
+     8  orchestrator's own choice kept
+     5  agent pinned by its definition
+     2  not confident enough to act
+  by task class: lookup 19, edit 9, review 6, build 5, design 3
+
+Subagent runs measured: 40
+  haiku    21 runs  1,912,400 tokens  $0.3120
+  sonnet   13 runs  2,204,100 tokens  $3.1040
+  opus      6 runs    911,300 tokens  $4.0210
+
+Subagent spend at list price:            $7.4370
+Same tokens at your session model rates: $19.8040
+```
+
+(Illustrative layout. Your numbers come from your own sessions.)
+
+The last line reprices the same token counts at the session model's rates. It is there to show the weight of routing down, and it is not a measurement of savings: a bigger model would have used a different number of tokens, often fewer. On subscription plans the dollar figures are relative weight, not a bill.
+
+Options: `--days N`, `--all`, `--session ID`, `--json`.
+
+## Troubleshooting
+
+**Nothing is being routed.** Run `/gearshift:doctor`. Then check, in order: mode is `fill` or `strict`; the calls are not already naming a model (kept by design); the agent type is not pinned; the classifier is confident (`gearshift route --platform claude-code --agent-type general-purpose "<the prompt>"`). `/gearshift:report` lists the action taken for every call.
+
+**"hook error" notices.** The hooks exit 0 on every failure they can catch. A notice means the shell could not start the launcher at all. On Windows without Git Bash, hooks run in PowerShell, where `sh` does not exist: install Git for Windows.
+
+**See what the hook saw.** Set `GEARSHIFT_DEBUG=1` and read `~/.claude/gearshift/debug.log`. Claude Code's own view is in `claude --debug`.
+
+**Subagents ignore the effort.** Check for `CLAUDE_CODE_EFFORT_LEVEL` and your Claude Code version.
+
+**Remove the session brief.** `GEARSHIFT_BRIEF=false`, if you would rather not spend the tokens. The skill still loads on demand.
+
+## Without the plugin
+
+The skill works on its own, as the original did:
+
+```bash
+git clone https://github.com/vjprsi/gearshift
+mkdir -p ~/.claude/skills ~/.claude/agents
+cp -r gearshift/skills/routing ~/.claude/skills/routing
+cp gearshift/agents/*.md ~/.claude/agents/
+```
+
+Copied this way the agents are named `scout`, `fixer` and so on, without the `gearshift:` prefix, so edit the agent names in the skill's table to match. You lose the hook, the ledger and the commands.
