@@ -1,0 +1,40 @@
+{"task": "Check the Kubernetes events for the payments namespace and tell me which pods restarted today.", "tier": "haiku"}
+{"task": "Skim the last three PR descriptions and list which tickets they reference.", "tier": "haiku"}
+{"description": "Locate env var reads", "task": "Before we rename DATABASE_URL I need to know every place it is read. Search the repo, including scripts and CI config, and return the paths. Don't change anything yet.", "agent_type": "Explore", "platform": "claude-code", "tier": "haiku"}
+{"task": "Run `go vet ./...` and paste back only the lines that mention the billing package.", "tier": "haiku"}
+{"task": "How many open TODO and FIXME comments are there per top-level directory?", "platform": "claude-code", "agent_type": "general-purpose", "tier": "haiku"}
+{"task": "Retrieve the current exchange rate table from the docs page below and list the currencies we don't support.", "tier": "haiku"}
+{"task": "Bucket these 1,500 survey answers into the six themes listed below.", "tier": "haiku"}
+{"task": "Convert each of these addresses into street, city, department and postal code fields.", "tier": "haiku"}
+{"task": "Anonymize the customer names in this CSV by replacing each with a stable pseudonym.", "tier": "haiku"}
+{"task": "Rank these 300 leads by the scoring rubric below and output the top 50 as JSON.", "tier": "haiku"}
+{"task": "Tell me whether each of these URLs is a product page, a category page or something else.", "tier": "haiku"}
+{"task": "The footer shows the wrong year. Use the current year instead of the hard-coded 2024 in Footer.vue.", "tier": "sonnet"}
+{"task": "Guard the delete endpoint in api/users.py so only admins can call it, and add a test for the forbidden case.", "tier": "sonnet"}
+{"task": "Silence the noisy deprecation warning from the pandas import in reports/export.py.", "tier": "sonnet"}
+{"task": "Switch the date picker in BookingForm.tsx to start weeks on Monday.", "tier": "sonnet"}
+{"task": "Inline the single-use helper format_money into its caller and delete it.", "tier": "sonnet"}
+{"description": "Mock the SMS client in tests", "task": "tests/notifications/test_sms.py currently hits the real SMS sandbox. Replace that with a mock of SmsClient.send and assert on the arguments. Only this test file should change. Run it and confirm it passes offline.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "sonnet"}
+{"task": "Jot down a short agenda for Thursday's architecture sync from these Slack messages.", "tier": "sonnet"}
+{"task": "Respond to the recruiter politely declining the offer but leaving the door open.", "tier": "sonnet"}
+{"task": "Tighten this executive summary to under 150 words without losing the three numbers.", "tier": "sonnet"}
+{"task": "Brainstorm ten names for a fraud-detection product aimed at Latin American banks.", "tier": "sonnet"}
+{"task": "Vet this vendor's security questionnaire answers and point out anything evasive.", "tier": "sonnet"}
+{"task": "Reconcile these two revenue numbers: finance says 1.82M, the dashboard says 1.91M. Data for both is attached.", "tier": "sonnet"}
+{"task": "Weigh the options for our mobile app: React Native, Flutter or native. We have four engineers.", "tier": "sonnet"}
+{"task": "Sanity-check my reasoning in this pricing proposal before I send it to the client.", "tier": "sonnet"}
+{"task": "Orders sporadically end up in the wrong warehouse queue when two updates arrive at the same moment. Track down the race and fix it.", "tier": "opus"}
+{"task": "Bootstrap a new notifications microservice: repo layout, CI pipeline, Dockerfile, a health endpoint, the first consumer and deployment manifests.", "tier": "opus"}
+{"task": "Checkout page load went from 800ms to 2.4s after last week's release. Find what regressed and fix it.", "tier": "opus"}
+{"task": "Instrument the whole request path with OpenTelemetry tracing across the gateway, the three backend services and the worker.", "tier": "opus"}
+{"description": "Roll out soft delete", "task": "Roll out soft delete for customer records. Touches the model, 11 query sites across 6 files, the admin UI list and detail pages, the export job, and needs a backfill migration plus tests for each query site.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "opus"}
+{"task": "Scope how we would add offline mode to the mobile wallet: what has to change in sync, storage and conflict handling.", "tier": "opus"}
+{"task": "Decompose the monolith's reporting module into services and sequence the extraction over three releases.", "tier": "opus"}
+{"task": "Specify the event schema and versioning rules for the shared fraud-signal bus that six banks will publish to.", "tier": "opus"}
+{"task": "Put together an exhaustive, cited study of chargeback fraud typologies across card networks, drawing on regulator publications and academic papers.", "tier": "opus"}
+{"task": "Formalize the invariants of this ledger and prove that no sequence of transfers can create or destroy money.", "tier": "fable"}
+{"task": "Cheers, that's all for now.", "tier": "sonnet"}
+{"task": "Why is the sky blue?", "tier": "sonnet"}
+{"task": "ok go", "tier": "opus"}
+{"task": "Revert yesterday's deploy on production and make sure the payment webhooks drain correctly.", "tier": "sonnet"}
+{"task": "At a glance, is there anything obviously wrong with this Dockerfile?", "tier": "sonnet"}

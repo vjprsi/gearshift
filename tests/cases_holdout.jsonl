@@ -1,0 +1,66 @@
+{"task": "Search the repository for every place we call `stripe.Charge.create` and give me file:line for each.", "class": "lookup", "tier": "haiku"}
+{"description": "Locate feature flag usage", "task": "We're cleaning up old flags. Look through src/ and tell me which files still reference ENABLE_LEGACY_CHECKOUT. Don't change anything.", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku"}
+{"task": "Run `npm test` and tell me which test files fail, with the first error line for each.", "class": "lookup", "tier": "haiku"}
+{"task": "Read the last 500 lines of the nginx access log and summarize the most common 5xx paths.", "class": "lookup", "tier": "haiku"}
+{"task": "What does the directory layout of packages/ look like? List the top-level packages and one line on each.", "platform": "claude-code", "agent_type": "general-purpose", "class": "lookup", "tier": "haiku"}
+{"task": "Open CHANGELOG.md and tell me the date of the 2.3.0 release.", "class": "lookup", "tier": "haiku"}
+{"task": "Go through the CI output below and pull out the names of the jobs that timed out.", "class": "lookup", "tier": "haiku"}
+{"task": "Check whether any of our Dockerfiles still use the node:16 base image and report which ones.", "class": "lookup", "tier": "haiku"}
+{"task": "Classify each of these 2,400 app store reviews as bug report, feature request, praise, or other. Return JSON lines.", "class": "extract", "tier": "haiku"}
+{"task": "Pull the invoice number, due date and total from each of the attached PDF text dumps and output CSV.", "class": "extract", "tier": "haiku"}
+{"task": "Tag these support emails with the product area (billing, login, shipping, other).", "class": "extract", "tier": "haiku"}
+{"task": "Detect the language of each message and output the ISO code.", "class": "extract", "tier": "haiku"}
+{"task": "Normalize these 800 company names: strip suffixes like Inc/LLC, fix casing, dedupe.", "class": "extract", "tier": "haiku"}
+{"task": "For each transaction description decide if it's a subscription charge: answer yes or no.", "class": "extract", "tier": "haiku"}
+{"task": "In utils/date.py the function parse_iso crashes on strings without a timezone. Add handling for that and a unit test.", "class": "edit", "tier": "sonnet"}
+{"task": "Rename the `userId` prop to `accountId` in ProfileCard.tsx and update its two call sites.", "class": "edit", "tier": "sonnet"}
+{"task": "The README install section still says pip install foo; update it to use uv.", "class": "edit", "tier": "sonnet"}
+{"task": "Add a --dry-run flag to scripts/cleanup.sh that prints what would be deleted.", "class": "edit", "tier": "sonnet"}
+{"task": "Fix the failing assertion in test_cart_total; the expected value should include tax.", "class": "edit", "tier": "sonnet"}
+{"task": "Bump eslint to v9 in package.json and fix whatever lint errors show up in src/components/Button.tsx.", "class": "edit", "tier": "sonnet"}
+{"task": "Write a small Python script that reads a CSV and prints the rows where the amount column is negative.", "class": "edit", "tier": "sonnet"}
+{"task": "Change the retry count from 3 to 5 in the HTTP client config and make it readable from an env var.", "class": "edit", "tier": "sonnet"}
+{"task": "Draft a polite email to a vendor asking to move our renewal date by two weeks.", "class": "write", "tier": "sonnet"}
+{"task": "Write release notes for v4.2 from this list of merged PR titles.", "class": "write", "tier": "sonnet"}
+{"task": "Turn these meeting notes into a one-page summary for the leadership team.", "class": "write", "tier": "sonnet"}
+{"task": "Translate this onboarding guide into Spanish, keeping the markdown formatting.", "class": "write", "tier": "sonnet"}
+{"task": "Create a 10-slide outline for a talk on our incident response process.", "class": "write", "tier": "sonnet"}
+{"task": "Write a job description for a senior backend engineer.", "class": "write", "tier": "sonnet"}
+{"task": "Review this pull request diff for bugs and style problems and list what should change before merge.", "class": "review", "tier": "sonnet"}
+{"task": "Compare Postgres logical replication and Debezium for our CDC needs; pros and cons of each.", "class": "review", "tier": "sonnet"}
+{"task": "Investigate why checkout conversion dropped last week using the attached analytics export.", "class": "review", "tier": "sonnet"}
+{"task": "Look over my cover letter and tell me what's weak.", "class": "review", "tier": "sonnet"}
+{"task": "Analyze this quarter's support ticket data and tell me the top three drivers of volume.", "class": "review", "tier": "sonnet"}
+{"task": "Explain what this regex does and whether it can catastrophically backtrack.", "class": "review", "tier": "sonnet"}
+{"task": "Implement passwordless login: API endpoints, email token flow, frontend form, and tests.", "class": "build", "tier": "opus"}
+{"task": "Our websocket server leaks memory under load; find the leak and fix it.", "class": "build", "tier": "opus"}
+{"task": "The nightly ETL job fails intermittently with a deadlock in Postgres. Track it down and fix it.", "class": "build", "tier": "opus"}
+{"task": "Add CSV export to the reports page: backend endpoint, a download button, and pagination for large exports.", "class": "build", "tier": "opus"}
+{"task": "Build the settings screen from this Figma mockup screenshot, matching spacing and colors.", "class": "build", "tier": "opus"}
+{"task": "The p99 latency of /search doubled after the last deploy. Profile it and get it back down.", "class": "build", "tier": "opus"}
+{"task": "Use the browser to log into the staging admin panel and click through the refund flow to confirm it works.", "class": "build", "tier": "opus"}
+{"task": "Port our rate limiter from Redis Lua scripts to a Go implementation with the same semantics, including the sliding window tests.", "class": "build", "tier": "opus"}
+{"task": "Design the data model and service boundaries for a multi-tenant billing system.", "class": "design", "tier": "opus"}
+{"task": "Plan the migration of our Django monolith from Python 3.8 to 3.12, including dependency risks and rollout order.", "class": "design", "tier": "opus"}
+{"task": "We need to split the orders service out of the monolith. Propose an architecture and a phased plan.", "class": "design", "tier": "opus"}
+{"task": "Write an RFC for moving from REST polling to an event-driven design with Kafka.", "class": "design", "tier": "opus"}
+{"task": "Refactor the entire payments module to remove the legacy gateway abstraction across all 40 files.", "class": "design", "tier": "opus"}
+{"task": "What are the trade-offs between a shared database and database-per-service for our scale? Recommend one.", "class": "design", "tier": "opus"}
+{"task": "Do deep research on the regulatory landscape for instant payments in Latin America and produce a cited report.", "class": "research", "tier": "opus"}
+{"task": "Prove that this lock-free queue algorithm is linearizable, or find a counterexample.", "class": "frontier", "tier": "fable"}
+{"task": "Work autonomously overnight to get the whole test suite green after the framework upgrade; coordinate subagents for each package.", "class": "research", "tier": "opus"}
+{"task": "Derive a closed-form approximation for the option price under this stochastic volatility model and validate it numerically.", "class": "frontier", "tier": "fable"}
+{"task": "Carry out a comprehensive literature review on mule-account detection with graph neural networks and synthesize the findings.", "class": "research", "tier": "opus"}
+{"task": "What's the difference between a mutex and a semaphore?", "class": "chat", "tier": "sonnet"}
+{"task": "Can you recommend a good name for a cat?", "class": "chat", "tier": "sonnet"}
+{"task": "How do I undo my last git commit?", "class": "chat", "tier": "sonnet"}
+{"task": "Handle this.", "class": "unsure", "tier": "opus"}
+{"task": "Take care of the thing we discussed with the dashboard.", "class": "unsure", "tier": "opus"}
+{"task": "Quickly grep for TODO comments in src/ and count them.", "class": "lookup", "tier": "haiku"}
+{"task": "Update the production database migration script to drop the legacy_users table.", "class": "edit", "tier": "sonnet"}
+{"task": "Something is off with how sessions expire; users get logged out randomly. Figure out what's going on.", "class": "review", "tier": "opus"}
+{"task": "Summarize this 300-page contract and flag the clauses that are unusual or risky for us.", "class": "review", "tier": "sonnet"}
+{"task": "Extract all the dates from this paragraph.", "class": "extract", "tier": "haiku"}
+{"task": "Write unit tests for the three public methods of RateLimiter in limiter.go.", "class": "edit", "tier": "sonnet"}
+{"task": "Find and fix the off-by-one error in the pagination helper.", "class": "edit", "tier": "sonnet"}
+{"task": "Find the bug.", "class": "unsure", "tier": "opus"}

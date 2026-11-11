@@ -1,0 +1,40 @@
+{"task": "Dig through the Sentry export and give me the ten most frequent error messages this week.", "tier": "haiku"}
+{"task": "What port does the dev server listen on? Look in the config files.", "platform": "claude-code", "agent_type": "Explore", "tier": "haiku"}
+{"task": "Print the names of all Terraform modules used under infra/ and the version each is pinned to.", "tier": "haiku"}
+{"description": "Check test coverage numbers", "task": "Run the coverage command from the Makefile and report the overall percentage plus the five files with the lowest coverage. Do not edit anything.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "haiku"}
+{"task": "Who last modified the rate limiting middleware, and when?", "platform": "claude-code", "agent_type": "general-purpose", "tier": "haiku"}
+{"task": "Scrape the pricing page text below into a table of plan name, monthly price and seat limit.", "tier": "haiku"}
+{"task": "Assign one of these five intents to each of the 3,200 chat messages in the file.", "tier": "haiku"}
+{"task": "Redact email addresses and phone numbers from each support transcript.", "tier": "haiku"}
+{"task": "Map each country name in this list to its ISO 3166 alpha-2 code.", "tier": "haiku"}
+{"task": "Standardize these dates to YYYY-MM-DD.", "tier": "haiku"}
+{"task": "The logout link 404s. Point it at /auth/logout instead of /logout in Navbar.jsx.", "tier": "sonnet"}
+{"task": "Cover the new discount rules in pricing.py with unit tests.", "tier": "sonnet"}
+{"task": "Stop logging the full request body in the audit middleware; log only the request id.", "tier": "sonnet"}
+{"task": "Pin all GitHub Actions in .github/workflows/ci.yml to commit SHAs.", "tier": "sonnet"}
+{"task": "Extract the duplicated validation code in signup.py and profile.py into one helper.", "tier": "sonnet"}
+{"description": "Make timeout configurable", "task": "The HTTP timeout in clients/partner_api.py is hard-coded to 10 seconds. Read it from settings.PARTNER_TIMEOUT with 10 as the default, and update the one existing test. Keep the diff minimal.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "sonnet"}
+{"task": "Put together a one-page onboarding checklist for new backend engineers.", "tier": "sonnet"}
+{"task": "Reply to this customer complaint: apologize, explain the delay and offer a 10% credit.", "tier": "sonnet"}
+{"task": "Condense these release notes into three sentences for the app store listing.", "tier": "sonnet"}
+{"task": "Give me talking points for tomorrow's board update on the fraud platform.", "tier": "sonnet"}
+{"task": "Go over this Terraform plan output and tell me if anything looks dangerous before I apply it.", "tier": "sonnet"}
+{"task": "Which of these two retry strategies is more robust, and why? Code for both is below.", "tier": "sonnet"}
+{"task": "Poke holes in this incident postmortem: what did we miss?", "tier": "sonnet"}
+{"task": "Work out why the weekly active users number in the dashboard disagrees with the SQL report.", "tier": "sonnet"}
+{"task": "Payments occasionally get double-charged when the provider times out and we retry. It is rare and we have no reproduction. Find the root cause and fix it.", "tier": "opus"}
+{"task": "Ship dark mode: theme tokens, a toggle in settings, persistence per user in the backend, and update the 14 affected components.", "tier": "opus"}
+{"task": "Our GraphQL gateway's memory grows until the pod is OOM-killed every few hours. Diagnose and fix.", "tier": "opus"}
+{"task": "Take these two wireframe images and build the onboarding flow screens to match.", "tier": "opus"}
+{"description": "Add audit logging", "task": "Add audit logging across the admin API. Every mutating endpoint under api/admin/ (there are about 25 across 9 files) must record actor, action, target and a before/after diff to the new audit_events table. Add the table migration, a decorator, apply it to the endpoints, and write tests for at least one endpoint per file.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "opus"}
+{"task": "Lay out how we should shard the transactions table as we grow from 50M to 5B rows, and what it means for the application.", "tier": "opus"}
+{"task": "We are moving from a REST monolith to gRPC services over the next two quarters. Give me the target architecture and the order to carve things out.", "tier": "opus"}
+{"task": "Define the service boundaries and data ownership for a shared fraud-signal network used by several banks.", "tier": "opus"}
+{"task": "Investigate, across many sources, how instant-payment mule networks are detected in India, Brazil and the UK, and write a detailed report with references.", "tier": "opus"}
+{"task": "Establish rigorously whether this rate-limiting algorithm can ever admit more than N requests per window, with a proof or a counterexample.", "tier": "fable"}
+{"task": "Good morning!", "tier": "sonnet"}
+{"task": "What's a webhook?", "tier": "sonnet"}
+{"task": "hmm", "tier": "opus"}
+{"task": "Rotate the production database credentials and update every service that uses them.", "tier": "opus"}
+{"task": "Carefully double-check the tax calculation in invoice.py against the rules below.", "tier": "sonnet"}
+{"task": "Briefly, what does this stack trace mean?", "tier": "sonnet"}

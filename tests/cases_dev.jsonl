@@ -1,0 +1,128 @@
+{"task": "Find every caller of parse_config() and list the file paths.", "class": "lookup", "tier": "haiku", "effort": "medium"}
+{"task": "Grep the codebase for hard-coded API URLs and report back where they are.", "class": "lookup", "tier": "haiku", "effort": "medium"}
+{"description": "Find API endpoints", "task": "Find all API endpoints defined in this repo. For each give the HTTP method, the path and the handler file. This is research only: do not modify any files.", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku", "effort": "medium"}
+{"description": "Summarize test failures", "task": "Run the test suite with `pytest -x -q` and report which tests fail and the assertion message for each. Do not attempt to fix anything; just report.", "agent_type": "general-purpose", "platform": "claude-code", "class": "lookup", "tier": "haiku"}
+{"task": "Read the error logs from the last deploy and summarize the distinct exception types with counts.", "class": "lookup", "tier": "haiku"}
+{"task": "List all environment variables referenced anywhere in the source tree.", "class": "lookup", "tier": "haiku"}
+{"task": "Where is the retry logic for the payment webhook handler defined?", "platform": "claude-code", "agent_type": "Explore", "class": "lookup", "tier": "haiku"}
+{"task": "Scan the monorepo and tell me which packages depend on lodash.", "class": "lookup", "tier": "haiku"}
+{"task": "Count how many TypeScript files have no corresponding test file.", "class": "lookup", "tier": "haiku"}
+{"task": "Summarize the output of this 3,000-line build log: what failed and where.", "class": "lookup", "tier": "haiku"}
+{"description": "Map the auth module", "task": "We are about to implement SSO and refactor the login flow. Before that I need a map of the current auth module: which files exist, what each exports, and where sessions are created. Read-only. Report back a short summary.", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku"}
+{"task": "Show me the git blame summary for src/billing/invoice.py: who touched it most in the last year.", "class": "lookup", "tier": "haiku"}
+{"task": "Check if the function normalize_phone is used anywhere outside tests.", "class": "lookup", "tier": "haiku"}
+{"task": "Fetch the README of each of our five service repos and list which ones document a local setup.", "class": "lookup", "tier": "haiku"}
+{"task": "Very thorough: find all usages of the deprecated Logger.warn API across the codebase, including dynamic calls.", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku", "effort": "high"}
+{"task": "Quick: which file defines the User model?", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku", "effort": "low"}
+
+{"task": "Classify these 5,000 support tickets by product area and return the result as JSON.", "class": "extract", "tier": "haiku", "effort": "low"}
+{"task": "Extract the name, email and company from each signature block into a table.", "class": "extract", "tier": "haiku", "effort": "low"}
+{"task": "Label each tweet as positive, negative or neutral sentiment.", "class": "extract", "tier": "haiku", "effort": "low"}
+{"task": "Parse these log lines into JSON with fields timestamp, level, service and message.", "class": "extract", "tier": "haiku"}
+{"task": "Categorize each expense line as travel, meals, software or other.", "class": "extract", "tier": "haiku"}
+{"task": "Convert this YAML config to JSON.", "class": "extract", "tier": "haiku"}
+{"task": "Route each incoming email to one of: sales, support, billing, spam.", "class": "extract", "tier": "haiku"}
+{"task": "Deduplicate this list of 12,000 addresses and output the unique ones as CSV.", "class": "extract", "tier": "haiku"}
+{"task": "Extract every dollar amount and date mentioned in the following paragraph, as JSON.", "class": "extract", "tier": "haiku"}
+{"task": "Tag each product description with up to three categories from the fixed list below.", "class": "extract", "tier": "haiku"}
+
+{"task": "Fix the typo in the error message in src/errors.ts.", "class": "edit", "tier": "sonnet", "effort": "medium"}
+{"task": "Rename the function getUsr to getUser in user_service.py and update its callers in the same file.", "class": "edit", "tier": "sonnet"}
+{"task": "Add a null check to formatAddress so it returns an empty string when address is missing.", "class": "edit", "tier": "sonnet"}
+{"task": "Update the docstring of calculate_tax to describe the new rounding parameter.", "class": "edit", "tier": "sonnet"}
+{"task": "Write a unit test for the slugify helper function covering unicode input.", "class": "edit", "tier": "sonnet"}
+{"task": "Implement the function is_palindrome(s) according to the spec in the docstring.", "class": "edit", "tier": "sonnet"}
+{"task": "Remove the unused imports in api/views.py.", "class": "edit", "tier": "sonnet"}
+{"task": "Bump the version in pyproject.toml to 2.1.0 and add a changelog entry.", "class": "edit", "tier": "sonnet"}
+{"task": "Replace the hard-coded timeout of 30 with a TIMEOUT_SECONDS environment variable in client.go.", "class": "edit", "tier": "sonnet"}
+{"task": "Fix the off-by-one error in the pagination helper function.", "class": "edit", "tier": "sonnet"}
+{"description": "Fix date formatting bug", "task": "In src/components/InvoiceRow.tsx the due date renders as 'Invalid Date' when the API returns null. Make it render a dash instead and add a test case to InvoiceRow.test.tsx. Keep the change contained to those two files. Run the tests for that file until they pass.", "agent_type": "general-purpose", "platform": "claude-code", "class": "edit", "tier": "sonnet"}
+{"task": "Create a helper function that converts snake_case keys to camelCase and add tests for it.", "class": "edit", "tier": "sonnet"}
+{"task": "Add a log line when the cache misses in fetchProfile.", "class": "edit", "tier": "sonnet"}
+{"task": "Quickly fix the lint errors in utils.js.", "class": "edit", "tier": "sonnet", "effort": "low"}
+{"task": "Fix the rounding bug in the invoice total calculation for the production billing service. Be careful.", "class": "edit", "tier": "sonnet", "effort": "high"}
+{"task": "Update the authentication middleware to reject tokens without an exp claim.", "class": "edit", "tier": "sonnet", "effort": "high"}
+
+{"task": "Draft an email to the team announcing the new on-call rotation.", "class": "write", "tier": "sonnet", "effort": "medium"}
+{"task": "Write a README for this CLI tool covering install, usage and examples.", "class": "write", "tier": "sonnet"}
+{"task": "Summarize this article into five bullet points for the newsletter.", "class": "write", "tier": "sonnet"}
+{"task": "Write a blog post announcing our Series A.", "class": "write", "tier": "sonnet"}
+{"task": "Proofread this cover letter and fix grammar.", "class": "write", "tier": "sonnet"}
+{"task": "Create a slide deck outline for the quarterly business review.", "class": "write", "tier": "sonnet"}
+{"task": "Write the PR description for this diff.", "class": "write", "tier": "sonnet"}
+{"task": "Translate the following product announcement into French and German.", "class": "write", "tier": "sonnet"}
+{"task": "Document the public API of the payments SDK in markdown.", "class": "write", "tier": "sonnet"}
+{"task": "Compose a status update for stakeholders about the delayed launch.", "class": "write", "tier": "sonnet"}
+
+{"task": "Review this diff for correctness and security issues.", "class": "review", "tier": "sonnet", "effort": "high"}
+{"task": "Investigate why the nightly report shows fewer orders than the dashboard.", "class": "review", "tier": "sonnet"}
+{"task": "Compare Redis and Memcached for our session store and tell me which is better for us.", "class": "review", "tier": "sonnet"}
+{"task": "Analyze the survey results in this CSV and tell me the three main takeaways.", "class": "review", "tier": "sonnet"}
+{"task": "Give me feedback on this product spec: what is missing or unclear?", "class": "review", "tier": "sonnet"}
+{"description": "Review auth changes", "task": "Review the changes on this branch against main. Focus on the session handling in auth/session.py and auth/middleware.py. Look for bugs, missing error handling and anything that would break existing clients. Do not make changes; report findings with file and line.", "agent_type": "code-reviewer", "platform": "claude-code", "class": "review", "tier": "sonnet", "effort": "high"}
+{"task": "Evaluate these three logging libraries against our requirements and summarize the pros and cons.", "class": "review", "tier": "sonnet"}
+{"task": "Research how other fintechs handle chargeback disputes and summarize common practices.", "class": "review", "tier": "sonnet"}
+{"task": "Assess whether our test coverage for the checkout module is adequate.", "class": "review", "tier": "sonnet"}
+{"task": "Investigate the intermittent deadlock in the job scheduler and report the root cause. Do not change any code.", "class": "review", "tier": "opus"}
+
+{"task": "Implement a notifications feature: database table, API endpoints, a React inbox component, and tests.", "class": "build", "tier": "opus", "effort": "medium"}
+{"task": "Debug the race condition in the connection pool that only happens under load.", "class": "build", "tier": "opus"}
+{"task": "The integration tests are flaky on CI but pass locally. Find out why and fix it.", "class": "build", "tier": "opus"}
+{"task": "Optimize the report generation endpoint; it's too slow for large accounts. Profile first.", "class": "build", "tier": "opus"}
+{"task": "Add OAuth login with Google across the frontend and backend, end-to-end.", "class": "build", "tier": "opus"}
+{"task": "Fix the memory leak in the image processing worker.", "class": "build", "tier": "opus"}
+{"description": "Implement bulk import", "task": "Implement bulk CSV import for contacts. This touches several files: api/routes/contacts.py, services/importer.py, models/contact.py, workers/import_job.py and the React page in web/src/pages/Contacts.tsx. Add validation, a background job, progress reporting and tests.", "agent_type": "general-purpose", "platform": "claude-code", "class": "build", "tier": "opus"}
+{"task": "Use computer use to fill out the vendor onboarding form in the browser with the details below.", "class": "build", "tier": "opus"}
+{"task": "Integrate Stripe subscriptions: webhooks, a customer portal link and plan upgrades.", "class": "build", "tier": "opus"}
+{"task": "Something is wrong with the checkout page and I'm not sure what; fix whatever is broken.", "class": "build", "tier": "opus"}
+{"task": "Build a CLI tool that syncs a local folder to S3 with resumable uploads, across multiple files and with tests.", "class": "build", "tier": "opus"}
+{"task": "Refactor the order service to use the repository pattern across multiple modules, keeping tests green.", "class": "build", "tier": "opus"}
+{"task": "Run autonomously for several hours and implement the remaining tickets in the sprint backlog.", "class": "build", "tier": "opus", "effort": "high"}
+
+{"task": "Design the architecture for a real-time fraud scoring service.", "class": "design", "tier": "opus"}
+{"task": "Plan the database migration from MySQL to Postgres with zero downtime.", "class": "design", "tier": "opus", "effort": "high"}
+{"task": "Architect a multi-tenant SaaS core banking platform: service boundaries, data model and deployment topology.", "class": "design", "tier": "opus"}
+{"task": "Propose a strategy for breaking our monolith into microservices, with trade-offs.", "class": "design", "tier": "opus"}
+{"task": "Write a design doc for the new permissions system.", "class": "design", "tier": "opus"}
+{"task": "Plan a major refactor of the entire codebase from callbacks to async/await.", "class": "design", "tier": "opus"}
+{"task": "Migrate the whole frontend from AngularJS to React. Start with a migration plan.", "class": "design", "tier": "opus"}
+{"description": "Plan the API versioning migration", "task": "We need to move all 30 services from v1 to v2 of the internal RPC protocol without breaking backwards compatibility. Produce a migration plan: ordering, compatibility shims, rollout and rollback steps, and the risks. Do not write code yet.", "agent_type": "Plan", "platform": "claude-code", "class": "design", "tier": "opus"}
+{"task": "Do a threat model for the payment initiation flow.", "class": "design", "tier": "opus"}
+{"task": "Design the schema for an event-sourced ledger.", "class": "design", "tier": "opus"}
+
+{"task": "Do deep research on the state of the art in mule-account detection and write a comprehensive report with sources.", "class": "research", "tier": "opus", "effort": "high"}
+{"task": "Prove that the scheduling algorithm terminates and derive its worst-case complexity.", "class": "frontier", "tier": "fable"}
+{"task": "Derive the closed-form posterior for this Bayesian model and check it with a Monte Carlo simulation.", "class": "frontier", "tier": "fable"}
+{"task": "Orchestrate a team of subagents to carry out a comprehensive analysis of every module, then synthesize the findings into one report.", "class": "research", "tier": "opus"}
+{"task": "Previous attempts by other models failed. This is an extremely hard problem: devise a novel algorithm for incremental graph partitioning.", "class": "frontier", "tier": "fable"}
+{"task": "Conduct an in-depth research study of the Brazilian instant payments market and produce a white paper citing primary sources.", "class": "research", "tier": "opus"}
+
+{"task": "What is the capital of Australia?", "class": "chat", "tier": "sonnet", "effort": "low"}
+{"task": "How does TCP slow start work?", "class": "chat", "tier": "sonnet"}
+{"task": "Hi, can you help me think about what to cook tonight?", "class": "chat", "tier": "sonnet"}
+{"task": "Is it better to rent or buy a car for a two-week trip?", "class": "chat", "tier": "sonnet"}
+
+{"task": "Do it.", "class": "unsure", "tier": "opus", "effort": "medium"}
+{"task": "The thing from yesterday.", "class": "unsure", "tier": "opus"}
+
+{"task": "Find the bug in the discount calculation and fix it.", "class": "edit", "tier": "sonnet"}
+{"task": "Find bugs in the order pipeline.", "class": "review", "tier": "sonnet"}
+{"task": "Decide which of these 200 customer complaints are legal risks; this is a judgment call.", "class": "review", "tier": "sonnet"}
+{"task": "Answer customer questions in the live chat widget in real time.", "class": "chat", "tier": "sonnet", "effort": "low"}
+{"task": "Extract the totals from these scanned invoice images.", "class": "extract", "tier": "sonnet"}
+{"task": "Run the tests until they pass after renaming the config key from db_url to database_url in settings.py.", "class": "edit", "tier": "sonnet"}
+{"description": "Explore API middleware", "task": "I'm implementing a new rate limiter for the public API and need to understand the existing middleware before I change anything. Please explore the codebase and report: (1) where requests enter (the server entrypoint), (2) every existing middleware and the order it runs in, (3) how config values for limits are loaded, (4) any existing tests for middleware. Thoroughness: medium. Return file paths with line numbers and a 2-3 sentence summary for each area. Don't write any code.", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku"}
+{"description": "Swap ledger calls in refunds", "task": "Context: we're midway through migrating the billing service to the new ledger API (design doc in docs/ledger.md). Your part is small and self-contained: in services/billing/refunds.py, replace the three calls to old_ledger.post() with ledger_client.post_entry() using the mapping in the doc, and update tests/billing/test_refunds.py accordingly. Don't touch other files. Run pytest tests/billing/test_refunds.py until it passes and report the diff summary.", "agent_type": "general-purpose", "platform": "claude-code", "class": "edit", "tier": "sonnet"}
+{"description": "Skeptical review of export pipeline", "task": "We just implemented the new export pipeline (see commits on this branch). Act as a skeptical reviewer: read the diff, run the unit tests, and look for edge cases the implementation misses, especially around empty datasets and unicode filenames. Report findings ranked by severity. Do not fix anything.", "agent_type": "general-purpose", "platform": "claude-code", "class": "review", "tier": "sonnet"}
+{"task": "Research how the OpenTelemetry Python SDK handles context propagation across asyncio tasks. Read the relevant source in the vendored copy under third_party/otel/ and summarize the mechanism with file references. I only need the facts; no code changes.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "sonnet"}
+{"description": "Explore payment flow", "task": "Trace the payment flow from the checkout controller to the ledger write. I want to understand every function call in between, and where errors are swallowed. Thoroughness: very thorough.", "agent_type": "Explore", "platform": "claude-code", "class": "lookup", "tier": "haiku", "effort": "high"}
+{"description": "Run tests and fix failures", "task": "Run the full test suite. If anything fails, fix the failures and re-run until green. Report what you changed.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "sonnet"}
+{"task": "Search the web for the latest pricing of the top 5 vector databases and compile a comparison table.", "class": "lookup", "tier": "haiku"}
+{"task": "Find where the feature flag for dark mode is read.", "class": "lookup", "tier": "haiku"}
+{"task": "Should we use Kafka or RabbitMQ for the event bus?", "class": "review", "tier": "sonnet", "effort": "high"}
+{"task": "Write a poem about autumn in Bogota.", "class": "write", "tier": "sonnet"}
+{"task": "Find all usages of the legacy client and format the result as a table.", "class": "lookup", "tier": "haiku"}
+{"task": "Write a function that merges two sorted lists.", "class": "edit", "tier": "sonnet"}
+{"task": "How do I reverse a list in Python?", "class": "chat", "tier": "sonnet"}
+{"task": "Analyze the statistical model in model.py for bugs.", "class": "review", "tier": "sonnet"}
+{"task": "Summarize this document.", "tier": "sonnet"}

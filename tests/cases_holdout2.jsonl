@@ -1,0 +1,45 @@
+{"task": "Which migrations have not been applied on staging? Compare the files in db/migrate with the schema_migrations dump below and list the missing ones.", "tier": "haiku"}
+{"task": "Go through the last 200 commits and list the ones that touched the payments directory, with author and date.", "tier": "haiku"}
+{"description": "Inventory feature flags", "task": "I need an inventory of every feature flag in the app before we remove the old flag service. Search for calls to flags.isEnabled and flags.variant, and report each flag name with the files it appears in. Read-only.", "agent_type": "Explore", "platform": "claude-code", "tier": "haiku"}
+{"task": "Tail the worker log and tell me how many jobs failed in the last hour and with which error codes.", "tier": "haiku"}
+{"task": "Does this repo have a docker-compose file, and which services does it define?", "platform": "claude-code", "agent_type": "general-purpose", "tier": "haiku"}
+{"task": "Run the linter and report the number of warnings per rule.", "tier": "haiku"}
+{"task": "Look up the current LTS version of Node.js and the date it goes out of support.", "tier": "haiku"}
+{"task": "Split each of these 9,000 full names into first, middle and last name columns and return CSV.", "tier": "haiku"}
+{"task": "Mark each of the following bank transaction memos as rent, salary, utilities, transfer or unknown.", "tier": "haiku"}
+{"task": "Pull the tracking number and carrier out of each shipping confirmation email below, as a JSON array.", "tier": "haiku"}
+{"task": "Turn this markdown table into a CSV file.", "tier": "haiku"}
+{"task": "For every row, output true if the phone number is a valid Colombian mobile number, else false.", "tier": "haiku"}
+{"task": "Make the submit button disabled while the form is saving, in CheckoutForm.tsx.", "tier": "sonnet"}
+{"task": "There's a crash in parseAmount when the string has a thousands separator. Handle '1,234.50' correctly and add a test.", "tier": "sonnet"}
+{"task": "Add an index on orders.customer_id in a new migration file.", "tier": "sonnet"}
+{"task": "Swap the deprecated datetime.utcnow() calls in scheduler.py for timezone-aware ones.", "tier": "sonnet"}
+{"description": "Add retry to S3 upload", "task": "In storage/s3.py the upload_file function gives up on the first network error. Wrap the call in a retry with exponential backoff (max 3 attempts) using the existing retry helper in utils/retry.py. Only touch storage/s3.py and its test. Run pytest tests/storage -q and make sure it passes.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "sonnet"}
+{"task": "Write a bash script that deletes local branches already merged into main.", "tier": "sonnet"}
+{"task": "Write a thank-you note to a client after a successful product launch.", "tier": "sonnet"}
+{"task": "Write up the incident from last night as a short postmortem for the engineering channel, based on the timeline below.", "tier": "sonnet"}
+{"task": "Rewrite this paragraph to be friendlier and half as long.", "tier": "sonnet"}
+{"task": "Prepare speaker notes for each of these 8 slides.", "tier": "sonnet"}
+{"task": "Check this pull request for N+1 queries and missing authorization checks.", "tier": "sonnet"}
+{"task": "Why did our AWS bill jump 30% in October? Here is the cost explorer export.", "tier": "sonnet"}
+{"task": "Critique this landing page copy and suggest what to cut.", "tier": "sonnet"}
+{"task": "Is this cron expression right for 'every weekday at 6:30 Bogota time'? 30 11 * * 1-5", "tier": "sonnet"}
+{"description": "Second opinion on caching change", "task": "Take a look at the diff on this branch that adds a Redis cache in front of the product catalog. I want a second opinion on cache invalidation: are there write paths that do not invalidate? Do not change code; list each concern with file and line.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "sonnet"}
+{"task": "Users sometimes see another user's cart after login. It only happens under load and we cannot reproduce it locally. Fix it.", "tier": "opus"}
+{"task": "Add multi-currency support to invoicing: schema change, API changes, PDF template and the admin UI.", "tier": "opus"}
+{"task": "The mobile app's startup time regressed from 1.2s to 3s somewhere in the last month. Find the cause and fix it.", "tier": "opus"}
+{"task": "Reproduce the checkout bug by clicking through the staging site in the browser, then fix it.", "tier": "opus"}
+{"task": "Build the admin dashboard page from these three screenshots, wired to the existing API.", "tier": "opus"}
+{"description": "Implement webhook delivery", "task": "Implement outbound webhook delivery for the events service. Needs: a deliveries table and model, an enqueue step when events are created, a worker that sends with HMAC signatures and retries with backoff, a dead-letter state after 8 failures, an admin API to list and replay deliveries, and tests for the worker and the API.", "agent_type": "general-purpose", "platform": "claude-code", "tier": "opus"}
+{"task": "How should we structure tenant isolation for a wallet platform that must serve banks in three countries? Lay out the options and pick one.", "tier": "opus"}
+{"task": "Plan how to move our cron jobs from a single VM to Kubernetes CronJobs without missing a run.", "tier": "opus"}
+{"task": "We want to replace our homegrown auth with an identity provider. Write the migration strategy and the rollback plan.", "tier": "opus"}
+{"task": "Produce a thorough, multi-source research report on how central banks in Latin America regulate instant payment fraud, with citations.", "tier": "opus"}
+{"task": "Split this refactor across parallel subagents: coordinate the workers, merge their results and resolve conflicts.", "tier": "opus"}
+{"task": "Show that this consensus protocol cannot commit two different values in the same slot, with a formal proof.", "tier": "fable"}
+{"task": "Three agents have already failed to find the cause of this numerical instability in the solver. Work out a novel approach from first principles.", "tier": "fable"}
+{"task": "What time zone is Bogota in?", "tier": "sonnet"}
+{"task": "Thanks, that worked!", "tier": "sonnet"}
+{"task": "Continue.", "tier": "opus"}
+{"task": "Delete the customer records for the accounts in this list from the production database.", "tier": "sonnet"}
+{"task": "Quick sanity check: does this SQL do what the comment says?", "tier": "sonnet"}
