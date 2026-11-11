@@ -176,7 +176,7 @@ class HookProcess(unittest.TestCase):
         for k in list(self.env):
             if k.startswith(("CLAUDE_PLUGIN_OPTION_", "GEARSHIFT_MODE", "GEARSHIFT_CEILING", "CLAUDE_CODE_EFFORT_LEVEL",
                              "CLAUDE_PROJECT_DIR", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "GEARSHIFT_JUDGE", "GEARSHIFT_API_KEY",
-                             "GEARSHIFT_INSIDE_JUDGE")):
+                             "GEARSHIFT_INSIDE_JUDGE", "GEARSHIFT_PROBE", "GEARSHIFT_HINT")):
                 self.env.pop(k)
         self.transcript = os.path.join(self.tmp, "main.jsonl")
         with open(self.transcript, "w") as f:
@@ -368,6 +368,27 @@ class HookProcess(unittest.TestCase):
         if p.stdout:
             self.assertNotIn(json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"].get("model"),
                              ("opus", "fable"))
+
+    def test_probe_in_the_hook(self):
+        from gearshift.outcomes import sampled
+        review = {"subagent_type": "general-purpose", "description": "Review the diff",
+                  "prompt": "Review this pull request for logic errors and report what you find. Do not change any files."}
+        yes = next("tu%d" % i for i in range(100) if sampled("tu%d" % i, 0.5))
+        no = next("tu%d" % i for i in range(100) if not sampled("tu%d" % i, 0.5))
+        out = {}
+        for tid in (yes, no):
+            p = self.hook("pre-agent", {"session_id": "s-" + tid, "transcript_path": self.transcript, "cwd": self.tmp,
+                                        "tool_name": "Agent", "tool_use_id": tid, "tool_input": review},
+                          env={"GEARSHIFT_PROBE": "0.5"})
+            out[tid] = json.loads(p.stdout)
+        up = out[yes]["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual((up["model"], up["effort"]), ("sonnet", "medium"))
+        self.assertIn(HINT, up["prompt"])
+        self.assertIn("probe: one step below sonnet@high", out[yes]["systemMessage"])
+        up = out[no]["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual((up["model"], up["effort"]), ("sonnet", "high"))
+        probes = [e for e in self.events() if e["ev"] == "route" and e.get("probe_from")]
+        self.assertEqual([e["tool_use_id"] for e in probes], [yes])
 
     def test_shadow_mode_records_outcomes_but_says_nothing(self):
         self.pre(LOOKUP, GEARSHIFT_MODE="shadow")

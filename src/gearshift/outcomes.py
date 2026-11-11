@@ -97,6 +97,31 @@ def next_rung(tier: str, effort: str, policy: Optional[Policy] = None,
     return None
 
 
+def prev_rung(tier: str, effort: str, policy: Optional[Policy] = None) -> Optional[Tuple[str, str]]:
+    pol = policy or default_policy()
+    here = (tier_rank(tier), EFFORTS.index(effort) if effort in EFFORTS else 1)
+    below = [(t, e) for t, e in pol.ladder if (tier_rank(t), EFFORTS.index(e)) < here]
+    return tuple(below[-1]) if below else None
+
+
+# what a probe may never touch: anything that changes things, or where a quiet
+# mistake is expensive. Probing is for work that is cheap to redo.
+_NO_PROBE_FLAGS = {"mutating", "stakes", "tricky", "long_horizon", "computer_use", "ambiguous", "major", "multi_file"}
+_NO_PROBE_CLASSES = {"unsure", "edit", "build", "frontier"}
+
+
+def probe_ok(task_class: str, flags: Iterable[str]) -> bool:
+    return task_class not in _NO_PROBE_CLASSES and not (_NO_PROBE_FLAGS & set(flags))
+
+
+def sampled(key: str, share: float) -> bool:
+    """Deterministic coin flip, so a given call always gets the same answer."""
+    if share <= 0:
+        return False
+    h = int(hashlib.sha1((key or "").encode("utf-8")).hexdigest()[:8], 16)
+    return (h % 10000) < int(share * 10000)
+
+
 # -- learning from the ledger --------------------------------------------------
 
 def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]]:
@@ -126,6 +151,7 @@ def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]
             "routed_by": "gearshift" if r.get("action") in ("filled", "overrode", "effort-only") else "claude",
             "escalated": bool(d.get("escalated")), "failed": bool(d.get("failed")),
             "retried_higher": r["tool_use_id"] in retried_higher,
+            "probe_from": r.get("probe_from"),
             "cost_usd": u.get("cost_usd"),
         })
     return runs
@@ -145,7 +171,15 @@ def build_tune(state: Path, *, days: Optional[float] = 30, min_runs: int = 20, r
     pol = policy or default_policy()
     runs = collect_runs(state, days)
     groups: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    probes: Dict[Tuple[str, str, str], Dict[str, int]] = {}
     for r in runs:
+        if r.get("probe_from"):
+            # a deliberate step down. judged on its own, not mixed into the class's record
+            p = probes.setdefault((r["class"], "%s@%s" % (r["tier"], r["effort"]), r["probe_from"]),
+                                  {"runs": 0, "short": 0})
+            p["runs"] += 1
+            p["short"] += bool(r["escalated"] or r["failed"] or r["retried_higher"])
+            continue
         g = groups.setdefault((r["class"], r["tier"]), {"runs": 0, "short": 0, "escalated": 0, "failed": 0,
                                                         "retried_higher": 0, "cost": 0.0, "costed": 0})
         g["runs"] += 1
@@ -177,14 +211,33 @@ def build_tune(state: Path, *, days: Optional[float] = 30, min_runs: int = 20, r
         elif rate <= 0.02 and g["runs"] >= 2 * min_runs and tier != "haiku":
             row["verdict"] = "holding up; worth testing one step down with `gearshift bench`"
         rows.append(row)
+    probe_rows, lower = [], {}
+    need = max(10, (min_runs * 3) // 4)
+    for (cls, ran, home), p in sorted(probes.items()):
+        rate = p["short"] / float(p["runs"])
+        row = {"class": cls, "ran": ran, "instead_of": home, "runs": p["runs"], "fell_short": p["short"],
+               "rate": round(rate, 3), "verdict": "not enough probes (%d of %d)" % (p["runs"], need)}
+        if p["runs"] >= need:
+            t, e = ran.split("@")
+            now = pol.classes.get(cls, {})
+            if rate >= raise_at:
+                row["verdict"] = "the cheaper step falls short too often; keep %s on %s" % (cls, home)
+            elif rate <= 0.05 and cls not in overrides and "%s@%s" % (now.get("tier"), now.get("effort")) == home:
+                row["verdict"] = "held up; %s can move down to %s" % (cls, ran)
+                lower[cls] = {"tier": t, "effort": e}
+            else:
+                row["verdict"] = "mixed; keep probing"
+        probe_rows.append(row)
+    overrides.update(lower)
     return {"days": days, "runs": len(runs), "min_runs": min_runs, "raise_at": raise_at, "rows": rows,
+            "probes": probe_rows, "lowered": sorted(lower),
             "policy_overrides": {"classes": overrides} if overrides else None}
 
 
 def format_tune(t: Dict[str, Any]) -> str:
     scope = "last %g days" % t["days"] if t.get("days") else "all time"
     lines = ["gearshift tune - %s, %d finished subagent runs" % (scope, t["runs"]), ""]
-    if not t["rows"]:
+    if not t["rows"] and not t.get("probes"):
         lines += ["Nothing to learn from yet. Outcomes are recorded as Claude Code delegates work",
                   "with the plugin on (1.2 or later). Come back after a few days of real use."]
         return "\n".join(lines)
@@ -192,6 +245,15 @@ def format_tune(t: Dict[str, Any]) -> str:
     for r in t["rows"]:
         lines.append("%-9s %-7s %5d %4d (%3.0f%%)   %s" % (
             r["class"], r["tier"], r["runs"], r["fell_short"], 100 * r["rate"], r["verdict"]))
+    if t.get("probes"):
+        lines += ["", "Probes (safe calls sent one step cheaper on purpose):",
+                  "%-9s %-14s %-14s %5s %11s   %s" % ("class", "ran on", "instead of", "runs", "fell short", "verdict")]
+        for r in t["probes"]:
+            lines.append("%-9s %-14s %-14s %5d %4d (%3.0f%%)   %s" % (
+                r["class"], r["ran"], r["instead_of"], r["runs"], r["fell_short"], 100 * r["rate"], r["verdict"]))
+    if t.get("lowered"):
+        lines += ["", "Before you lower anything: the ledger sees escalations and errors, not wrong answers.",
+                  "Read a few of the probe results for %s yourself first." % ", ".join(t["lowered"])]
     lines += ["", "fell short = the subagent said ESCALATE, the call errored, or the same task was",
               "re-sent on a bigger model. It does not measure whether finished work was right."]
     if t.get("policy_overrides"):

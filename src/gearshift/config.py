@@ -22,6 +22,9 @@ make my subagents more expensive.
   permission  allow (default) | ask | none - permissionDecision sent with a rewritten call
   hint        true (default) | false - when the hook moves a call to a cheaper model, add one
               line to its prompt telling it to answer ESCALATE: if the task is beyond it
+  probe       0 (default) to 0.5 - share of safe, read-only calls sent one step CHEAPER than
+              the table says, to find out whether the table is too generous for your work.
+              Off unless you turn it on. Not settable from a project file.
   judge       auto (default) | off | api | claude
               LLM second opinion when the keyword rules aren't confident.
               auto = api if GEARSHIFT_API_KEY or ANTHROPIC_API_KEY is set, otherwise off.
@@ -49,6 +52,7 @@ DEFAULTS: Dict[str, Any] = {
     "permission": "allow",
     "judge": "auto",
     "hint": True,
+    "probe": 0.0,
     "project_cap": None,
     "policy": None,
 }
@@ -85,6 +89,11 @@ def _apply(cfg: Dict[str, Any], src: Mapping[str, Any]) -> None:
         b = _as_bool(src.get(key))
         if b is not None:
             cfg[key] = b
+    if src.get("probe") is not None:
+        try:
+            cfg["probe"] = min(0.5, max(0.0, float(src["probe"])))   # never more than half the calls
+        except (TypeError, ValueError):
+            pass
 
 
 def _read(path: Path) -> Dict[str, Any]:

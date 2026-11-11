@@ -208,10 +208,18 @@ def on_session_start(inp: Mapping[str, Any]) -> Optional[dict]:
     return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": brief}}
 
 
+def _can_set_effort(cfg: Mapping[str, Any], version: Optional[str]) -> bool:
+    if os.environ.get("CLAUDE_CODE_EFFORT_LEVEL"):
+        return False   # env var wins over per-call effort anyway
+    v = _parse_version(version)
+    return (cfg["set_effort"] == "always"
+            or (cfg["set_effort"] == "auto" and v is not None and v >= EFFORT_PARAM_MIN_VERSION))
+
+
 def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
                       session_tier: Optional[str], version: Optional[str],
                       project_dir: Optional[str], router: Optional[Router] = None,
-                      retry_from: Optional[Tuple[str, str]] = None) -> Dict[str, Any]:
+                      retry_from: Optional[Tuple[str, str]] = None, probe: bool = False) -> Dict[str, Any]:
     """Pure decision logic for one Agent call. Returns a record with
     action and, when something changes, updated (the full new input).
 
@@ -273,6 +281,14 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
         rec["capped_from"], rec["decision"] = rec["want_tier"], d
     want_tier, want_effort = d.tier, force_effort or d.effort
 
+    if (probe and not bumped and have_model is None and have_effort is None and cfg["mode"] != "strict"
+            and outcomes.probe_ok(d.task_class, d.flags)):
+        # deliberately one step cheaper than the table, to learn whether the table is too generous
+        down = outcomes.prev_rung(want_tier, want_effort, router.policy)
+        if down and (down[0] != want_tier or _can_set_effort(cfg, version)):
+            rec["probe_from"] = "%s@%s" % (want_tier, want_effort)
+            want_tier, want_effort = down
+
     strict = cfg["mode"] == "strict"
     new_model = have_model
     if have_model is None or (strict and have_model != want_tier):
@@ -283,11 +299,7 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
         else:
             new_model = want_tier
 
-    v = _parse_version(version)
-    can_set_effort = (cfg["set_effort"] == "always"
-                      or (cfg["set_effort"] == "auto" and v is not None and v >= EFFORT_PARAM_MIN_VERSION))
-    if os.environ.get("CLAUDE_CODE_EFFORT_LEVEL"):
-        can_set_effort = False   # env var wins over per-call effort anyway
+    can_set_effort = _can_set_effort(cfg, version)
     final_tier = new_model or session_tier
     new_effort = have_effort
     if can_set_effort and not fm.get("effort") and (have_effort is None or strict):
@@ -337,10 +349,11 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     if prior and prior.get("short") and prior.get("tier"):
         retry_from = (prior["tier"], prior.get("effort") or "medium")
     rec = decide_agent_call(tool_input, cfg=cfg, session_tier=facts["tier"],
-                            version=facts["version"], project_dir=project_dir, retry_from=retry_from)
+                            version=facts["version"], project_dir=project_dir, retry_from=retry_from,
+                            probe=prior is None and outcomes.sampled(str(inp.get("tool_use_id") or desc), cfg["probe"]))
     rec.pop("decision")
     updated = rec.pop("updated")
-    if updated is not None and cfg.get("hint") and rec["action"] in ("filled", "overrode") \
+    if updated is not None and cfg.get("hint") and (rec["action"] in ("filled", "overrode") or rec.get("probe_from")) \
             and outcomes.HINT not in str(updated.get("prompt") or ""):
         # a cheaper model than the one that asked: give it a way to say "too hard for me"
         updated["prompt"] = str(updated.get("prompt") or "").rstrip() + "\n\n" + outcomes.HINT
@@ -368,6 +381,9 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     label = "%s%s" % (rec["model"] or (rec.get("session_tier") or "session model"),
                       ("@" + rec["effort"]) if rec["effort"] else "")
     why = "gearshift: %s -> %s (%s, confidence %.2f)" % (rec["agent_type"], label, rec["class"], rec["confidence"])
+    if rec.get("probe_from"):
+        why = "gearshift: %s -> %s (probe: one step below %s for %s, to test the table)" % (
+            rec["agent_type"], label, rec["probe_from"], rec["class"])
     if rec.get("bumped_from"):
         why = "gearshift: %s -> %s (same task fell short on %s, so one step up)" % (
             rec["agent_type"], label, rec["bumped_from"])
