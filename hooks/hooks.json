@@ -8,7 +8,7 @@
       { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-agent", "timeout": 30 } ] }
     ],
     "PostToolUse": [
-      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 10 } ] }
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 30 } ] }
     ],
     "SubagentStop": [
       { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook subagent-stop", "timeout": 30, "async": true } ] }

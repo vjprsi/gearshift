@@ -301,11 +301,32 @@ gearshift fill | 11 subagents: haiku 8, sonnet 3 | $0.311 vs $0.88 at session ra
 
 Where this session's subagents ran (whether the hook set the model or Claude picked a pinned agent itself), what they cost, what the same tokens would have cost at your session model's rates, and how many asked to escalate. It reads the tail of the ledger and never raises.
 
+## What a real session taught me (new in 1.4)
+
+I ran gearshift through a full working session and looked at the whole bill, not just the subagents ([docs/RESULTS.md](docs/RESULTS.md)). Two things came out of it, and both are in 1.4.
+
+**The check.** A colleague put it better than I had: the error that matters is the cheap model that hands back something wrong and sounds sure. Nothing in 1.3 could see that. Now you can give gearshift a command:
+
+```bash
+export GEARSHIFT_VERIFY="python3 -m unittest discover -s tests"
+```
+
+When a subagent that changed code comes back, the hook runs it. If it fails, Claude is told the work was reported done but your check failed, shown the tail of the output, told not to build on it, and given the next rung to redo it on. The failure goes in the ledger, so `tune` counts it. It only helps where you have tests, it only runs for code changes, and it has 25 seconds. A project file can't set it, because it runs a command on your machine.
+
+**The context.** In that session the main model was 87% of the cost, and about 70% of that was re-reading and re-saving context. Routing doesn't touch that, so gearshift now at least shows it to you:
+
+- `doctor` counts your installed agents and estimates how many tokens of descriptions ride along on every request. Mine was far over what Claude Code itself recommends, almost all of it from plugins I wasn't using.
+- The status line shows the session cost and the size of the main context, and says so when it's time to `/clear`:
+
+```
+gearshift fill | 18 subagents: haiku 15, sonnet 3 | $0.976 vs $2.52 at session rates | session $7.37 | ctx 178k: /clear between tasks
+```
+
 ## Status
 
-This is 1.3, so here's exactly where it stands:
+This is 1.4, so here's exactly where it stands:
 
-- 186 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- 201 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - First full working session on macOS (18 subagent runs, 61% lower than session rates on the delegated part, numbers in [docs/RESULTS.md](docs/RESULTS.md)). In that session Claude picked the pinned agents itself every time, so the hook had nothing to change.
 - The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.
@@ -337,6 +358,7 @@ Raj's skill is clear and well judged, go read it. What's different here:
 | `judge` | `auto`, `off`, `api`, `claude` (Haiku second opinion when the keywords are unsure) | `auto` |
 | `hint` | add the `ESCALATE:` line to prompts the hook routes down | `true` |
 | `probe` | share (0 to 0.5) of safe read-only calls sent one step cheaper, to test the table | `0` |
+| `verify` | a command to run after a subagent changes code; a failure is reported to Claude | off |
 | `brief` | routing brief in context at session start | `true` |
 | `explore` | `route` or `leave` the built-in Explore agent | `route` |
 

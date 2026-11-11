@@ -84,6 +84,18 @@ gearshift tune --all --min-runs 10 --raise-at 0.2
 
 It groups finished runs by task class and the tier they ran on, and proposes a raise only when a class has enough runs on its home tier and too many fell short. The output ends with the JSON to merge into `~/.config/gearshift/policy.json`. Nothing is applied for you.
 
+## Verify
+
+`GEARSHIFT_VERIFY="python3 -m unittest discover -s tests"` (or `"verify": "..."` in `~/.config/gearshift/config.json`).
+
+After an Agent call returns, if the task was a code change (class `edit` or `build`, or the `mutating` flag), the mode is `fill` or `strict`, and the subagent neither escalated nor errored, the hook runs the command in the project folder with a 25 second limit.
+
+- Exit 0: recorded as `"verify": "pass"`, nothing is said.
+- Any other exit: recorded as `"verify": "fail"`. Claude gets the model the subagent ran on, the last 600 characters of the output, an instruction not to build on the result, and the next rung to redo it on. The task is marked as fallen short, so sending it again starts one rung up.
+- Timeout or the command could not start: recorded as nothing, treated as unknown.
+
+It applies whoever chose the model, the hook or Claude. If your suite takes longer than 25 seconds, point it at a fast subset. The command comes from your own settings only; a `.gearshift.json` in a repo is ignored for this key.
+
 ## Probing
 
 Off by default. `GEARSHIFT_PROBE=0.1` (or `"probe": 0.1` in `~/.config/gearshift/config.json`) sends about one in ten eligible calls one rung down the ladder: `sonnet@high` becomes `sonnet@medium`, `sonnet@medium` becomes `haiku@high`.
@@ -122,6 +134,7 @@ If you want to see its judgment before trusting it, run `shadow` for a day. That
 | `judge` | `auto` `off` `api` `claude` | `auto` | Second opinion from Haiku when the keyword rules aren't confident. `auto` is `api` when `GEARSHIFT_API_KEY` or `ANTHROPIC_API_KEY` is set, otherwise off. Cannot be set from a project file. |
 | `hint` | `true` `false` | `true` | When the hook routes a call to a cheaper model, append one line telling the subagent to answer `ESCALATE:` if the task is beyond it. A project file can switch it off. |
 | `probe` | `0` to `0.5` | `0` | Share of safe, read-only calls sent one rung cheaper than the policy says. See Probing. Cannot be set from a project file. |
+| `verify` | a shell command | empty | Run after a subagent that changed code returns. See Verify. Cannot be set from a project file. |
 
 Where to set them, later wins:
 

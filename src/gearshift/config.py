@@ -22,6 +22,10 @@ make my subagents more expensive.
   permission  allow (default) | ask | none - permissionDecision sent with a rewritten call
   hint        true (default) | false - when the hook moves a call to a cheaper model, add one
               line to its prompt telling it to answer ESCALATE: if the task is beyond it
+  verify      a shell command (for example your test suite). When a subagent that changed code
+              comes back, the hook runs it in the project folder; if it fails, Claude is told
+              not to build on that result and to redo it one step up. Limit 25 seconds.
+              Not settable from a project file: it runs a command on your machine.
   probe       0 (default) to 0.5 - share of safe, read-only calls sent one step CHEAPER than
               the table says, to find out whether the table is too generous for your work.
               Off unless you turn it on. Not settable from a project file.
@@ -53,6 +57,7 @@ DEFAULTS: Dict[str, Any] = {
     "judge": "auto",
     "hint": True,
     "probe": 0.0,
+    "verify": "",
     "project_cap": None,
     "policy": None,
 }
@@ -89,6 +94,8 @@ def _apply(cfg: Dict[str, Any], src: Mapping[str, Any]) -> None:
         b = _as_bool(src.get(key))
         if b is not None:
             cfg[key] = b
+    if isinstance(src.get("verify"), str):
+        cfg["verify"] = src["verify"].strip()[:500]
     if src.get("probe") is not None:
         try:
             cfg["probe"] = min(0.5, max(0.0, float(src["probe"])))   # never more than half the calls

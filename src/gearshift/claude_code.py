@@ -40,6 +40,7 @@ AGENT_TOOLS = ("Agent", "Task")
 ROUTABLE_BUILTINS = {"general-purpose", "claude", "Explore"}
 NEVER_ROUTE = {"Plan", "statusline-setup", "claude-code-guide", "fork"}
 EFFORT_PARAM_MIN_VERSION = (2, 1, 292)
+VERIFY_TIMEOUT = 25      # seconds; the hook itself is cut off at 30
 
 _BRIEF = (
     "The gearshift plugin is active in this session. It routes delegated work by task type: "
@@ -243,6 +244,7 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
     rec: Dict[str, Any] = {
         "agent_type": agent_type, "class": d.task_class, "confidence": d.confidence,
         "judged": bool(d.classification and d.classification.judged),
+        "mutating": d.task_class in ("edit", "build") or "mutating" in d.flags,
         "want_tier": d.tier, "want_effort": d.effort, "had_model": have_model,
         "had_effort": have_effort, "session_tier": session_tier, "action": "kept",
         "model": have_model, "effort": have_effort, "updated": None, "decision": d,
@@ -384,7 +386,7 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     tasks = st.get("tasks") if isinstance(st.get("tasks"), list) else []
     tasks.append({"id": inp.get("tool_use_id"), "fp": fp, "desc": desc[:80], "tier": ran_tier,
                   "effort": rec["effort"] or rec.get("pinned_effort") or rec.get("want_effort"), "class": rec["class"],
-                  "attempt": event.get("attempt", 1), "short": False})
+                  "mut": bool(rec.get("mutating")), "attempt": event.get("attempt", 1), "short": False})
     st["tasks"] = tasks[-outcomes.MAX_TASKS:]
     save_session(sid, st)
     ledger.append_event(state_dir(), event)
@@ -411,6 +413,19 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     return result
 
 
+def _run_verify(command: str, cwd: Optional[str]) -> Tuple[Optional[bool], str]:
+    """Run the user's check. (True/False, tail of output), or (None, "") if it could not finish."""
+    import subprocess
+    try:
+        p = subprocess.run(command, shell=True, cwd=cwd or None, capture_output=True, text=True,
+                           timeout=VERIFY_TIMEOUT, stdin=subprocess.DEVNULL,
+                           env=dict(os.environ, GEARSHIFT_MODE="off"))
+    except (subprocess.SubprocessError, OSError):
+        return None, ""
+    tail = ((p.stderr or "") + (p.stdout or "")).strip()[-600:]
+    return p.returncode == 0, tail
+
+
 def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     if inp.get("tool_name") not in AGENT_TOOLS:
         return None
@@ -419,6 +434,20 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         return None
     reason = outcomes.escalation_in(resp)
     failed = outcomes.failed_status(resp)
+    sid = str(inp.get("session_id") or "")
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd")
+    cfg = load_config(project_dir)
+    st = load_session(sid)
+    task = next((t for t in st.get("tasks") or [] if t.get("id") == inp.get("tool_use_id")), None)
+
+    # the failure nobody announces: the subagent says "done" and the work is wrong.
+    # if the user gave us a check and this subagent changed code, run it.
+    check: Tuple[Optional[bool], str] = (None, "")
+    if (cfg["mode"] in ("fill", "strict") and cfg.get("verify") and task and task.get("mut")
+            and not reason and not failed):
+        check = _run_verify(cfg["verify"], project_dir)
+    bad_check = check[0] is False
+
     event = {
         "ev": "done", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
         "agent_id": resp.get("agentId"), "status": resp.get("status"),
@@ -429,23 +458,21 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         event["escalated"], event["escalate_reason"] = True, reason
     if failed:
         event["failed"] = True
+    if check[0] is not None:
+        event["verify"] = "pass" if check[0] else "fail"
     ledger.append_event(state_dir(), event)
-    if not (reason or failed):
+    if not (reason or failed or bad_check) or task is None:
         return None
 
     # remember it, so the same task sent again starts one rung up
-    sid = str(inp.get("session_id") or "")
     st = load_session(sid)
-    task = None
     for t in st.get("tasks") or []:
         if t.get("id") == inp.get("tool_use_id"):
             t["short"] = True
-            task = t
-    if task is None:
-        return None
     save_session(sid, st)
-    cfg = load_config(os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd"))
-    if cfg["mode"] in ("off", "shadow") or not cfg["advise"] or not reason or not task.get("tier"):
+    if cfg["mode"] in ("off", "shadow") or not task.get("tier"):
+        return None
+    if not bad_check and not (reason and cfg["advise"]):
         return None
     ran = "%s@%s" % (task["tier"], task.get("effort") or "default effort")
     cap = effective_ceiling(cfg, _session_facts(inp)["tier"])
@@ -454,8 +481,12 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         advice = "Re-run it one step up: model=%s, effort=%s." % up
     else:
         advice = "There is no step above it within your ceiling, so take this one in the main session."
-    return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext":
-            "gearshift: this subagent ran on %s and asked to escalate (%s). %s" % (ran, reason, advice)}}
+    if bad_check:
+        text = ("gearshift: this subagent ran on %s and reported the work done, but your check failed "
+                "(`%s`):\n%s\nDo not build on this result. %s" % (ran, cfg["verify"][:120], check[1], advice))
+    else:
+        text = "gearshift: this subagent ran on %s and asked to escalate (%s). %s" % (ran, reason, advice)
+    return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}}
 
 
 def on_subagent_stop(inp: Mapping[str, Any]) -> Optional[dict]:

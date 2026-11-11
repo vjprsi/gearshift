@@ -15,6 +15,7 @@ from typing import Any, Dict, Mapping, Optional
 
 from . import ledger
 from .config import load_config, state_dir
+from .context import CONTEXT_NUDGE, main_context_tokens
 from .pricing import tier_of
 
 _ORDER = ("haiku", "sonnet", "opus", "fable")
@@ -93,6 +94,13 @@ def render(inp: Mapping[str, Any]) -> str:
         if s["rates_known"] and s["at_session_rates"] > s["spend"] > 0:
             money += " vs $%.2f at session rates" % s["at_session_rates"]
         parts.append(money)
+    cost = inp.get("cost") if isinstance(inp.get("cost"), dict) else {}
+    if isinstance(cost.get("total_cost_usd"), (int, float)) and cost["total_cost_usd"] > 0:
+        parts.append("session $%.2f" % cost["total_cost_usd"])
+    ctx = main_context_tokens(inp.get("transcript_path") if isinstance(inp.get("transcript_path"), str) else None)
+    if ctx:
+        # the main model re-reads this on every request. past a point, say so.
+        parts.append("ctx %dk" % round(ctx / 1000.0) + (": /clear between tasks" if ctx >= CONTEXT_NUDGE else ""))
     if s["probes"]:
         parts.append("%d probes" % s["probes"])
     if s["escalated"]:

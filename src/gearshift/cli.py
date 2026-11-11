@@ -215,6 +215,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         has_key = os.environ.get("GEARSHIFT_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
         jk = "auto (api key found: on)" if has_key else "auto (no api key: off)"
     print("  judge: %s" % jk)
+    try:
+        from .context import agent_footprint, footprint_lines
+        for text in footprint_lines(agent_footprint(os.environ.get("CLAUDE_PROJECT_DIR"))):
+            print(text)     # information, not a failure: doctor still says all good
+    except Exception:
+        pass
     print("  config: mode=%s ceiling=%s set_effort=%s announce=%s advise=%s%s" % (
         cfg["mode"], cfg["ceiling"], cfg["set_effort"], cfg["announce"], cfg["advise"],
         " project_cap=%s" % cfg["project_cap"] if cfg.get("project_cap") else ""))

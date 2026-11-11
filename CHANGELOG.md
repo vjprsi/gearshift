@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 (2026-11-10)
+
+Built from the first full live session and from a colleague's point that a cheap model being confidently wrong counted as a success.
+
+- `verify`: a command the hook runs after a subagent that changed code returns. A failing check is reported to Claude with the output and the rung to redo the work on, and counts as falling short in `tune`.
+- `doctor` counts installed agents and estimates the description tokens they add to every request.
+- Status line shows the session cost and the main context size, with a nudge to `/clear` above 120k tokens. It now counts subagents by where they ran, including pinned agents Claude chose itself.
+- Fixed: `tune` reported pinned agents as running on the session model. An escalation from a pinned agent now climbs from the agent's own model.
+- PostToolUse hook timeout raised to 30s for the check.
+
+Not done: `verify` has only run against test payloads. Probing still skips pinned agents, which is where all the traffic went in the live session.
+
 ## 1.3.0 (2026-11-10)
 
 - Probing (`probe`, off by default): a share of safe, read-only calls goes one rung cheaper than the policy says, with the escalate hint, so the table can be tested on real work. Never code changes, never high-stakes work, never calls that named a model.
