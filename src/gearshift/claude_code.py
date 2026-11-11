@@ -182,6 +182,34 @@ def agent_definition(agent_type: str, project_dir: Optional[str]) -> Tuple[str, 
     return ("builtin", {}) if builtin else ("unknown", {})
 
 
+WRITE_TOOLS = frozenset(("Edit", "Write", "MultiEdit", "NotebookEdit"))
+READ_ONLY_BUILTINS = frozenset(("Explore", "Plan"))
+
+
+def _tool_names(value: str) -> List[str]:
+    # "Read, Grep, Bash(git:*)" -> Read, Grep, Bash
+    return [re.sub(r"\(.*$", "", t).strip() for t in re.split(r"[,\s]+(?![^()]*\))", value or "") if t.strip()]
+
+
+def can_write(agent_type: str, status: str, fm: Mapping[str, str]) -> Optional[bool]:
+    """Can this agent change files, going by its definition? None when I cannot see one.
+
+    False only when I am sure: a tools line with no Edit or Write in it, or a built-in that is
+    read-only. Bash can change a file too, but an agent given only Read/Grep/Bash is a reader
+    by design, and that is the line the check follows."""
+    if agent_type in READ_ONLY_BUILTINS:
+        return False
+    if status == "unknown":
+        return None
+    tools = _tool_names(fm.get("tools", ""))
+    if tools:
+        return any(t in WRITE_TOOLS for t in tools)
+    denied = set(_tool_names(fm.get("disallowedTools", "")))
+    if {"Edit", "Write"} <= denied:
+        return False
+    return True     # no tools line: it inherits everything
+
+
 # -- handlers ------------------------------------------------------------------
 
 def _router(cfg: Mapping[str, Any], with_judge: bool = False) -> Router:
@@ -205,8 +233,7 @@ def on_session_start(inp: Mapping[str, Any]) -> Optional[dict]:
     st.setdefault("advised", {})
     st.setdefault("streak", 0)
     save_session(sid, st)
-    ledger.append_event(state_dir(), {"ev": "session", "session": sid, "model": st.get("model"),
-                                      "source": inp.get("source")})
+    _log({"ev": "session", "session": sid, "model": st.get("model"), "source": inp.get("source")})
     if cfg["mode"] == "off" or not cfg["brief"]:
         return None
     cap = cfg["ceiling"]
@@ -285,6 +312,7 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
     }
     status, fm = agent_definition(agent_type, project_dir)
     rec["agent_status"] = status
+    rec["can_write"] = can_write(agent_type, status, fm)
     if status == "skip" or (agent_type == "Explore" and cfg.get("explore") == "leave"):
         rec["action"] = "skipped"
         return rec
@@ -403,8 +431,12 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     st = load_session(sid)
     tasks = st.get("tasks") if isinstance(st.get("tasks"), list) else []
     prior = outcomes.find_prior(tasks, fp, desc)
+    if prior and not prior.get("short"):
+        # it looks like an earlier task, but that one went fine, so this is not a retry.
+        # Live, "Run test suite M2" was logged as a retry of "Run test suite M1": 10 of 39 calls.
+        prior = None
     retry_from = None
-    if prior and prior.get("short") and prior.get("tier"):
+    if prior and prior.get("tier"):
         retry_from = (prior["tier"], prior.get("effort") or "medium")
     rec = decide_agent_call(tool_input, cfg=cfg, session_tier=facts["tier"],
                             version=facts["version"], project_dir=project_dir, retry_from=retry_from,
@@ -430,11 +462,11 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     tasks = st.get("tasks") if isinstance(st.get("tasks"), list) else []
     tasks.append({"id": inp.get("tool_use_id"), "fp": fp, "desc": desc[:80], "tier": ran_tier,
                   "effort": rec["effort"] or rec.get("pinned_effort") or rec.get("want_effort"), "class": rec["class"],
-                  "mut": bool(rec.get("mutating")), "attempt": event.get("attempt", 1), "short": False})
+                  "mut": bool(rec.get("mutating")), "rw": rec.get("can_write"),
+                  "attempt": event.get("attempt", 1), "short": False})
     st["tasks"] = tasks[-outcomes.MAX_TASKS:]
     save_session(sid, st)
-    ledger.append_event(state_dir(), event)
-    _debug("route %s" % json.dumps(event, default=str))
+    _log(event)
     if updated is None:
         return None
     label = "%s%s" % (rec["model"] or rec.get("pinned_model") or rec.get("session_tier") or "session model",
@@ -461,17 +493,89 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     return result
 
 
-def _run_verify(command: str, cwd: Optional[str]) -> Tuple[Optional[bool], str]:
-    """Run the user's check. (True/False, tail of output), or (None, "") if it could not finish."""
+def _run_verify(command: str, cwd: Optional[str], timeout: Optional[float] = None) -> Tuple[Optional[bool], str]:
+    """Run the user's check. (True/False, tail of output). If it could not finish:
+    (None, "timeout") when it ran out of time, (None, "") for anything else."""
     import subprocess
     try:
         p = subprocess.run(command, shell=True, cwd=cwd or None, capture_output=True, text=True,
-                           timeout=VERIFY_TIMEOUT, stdin=subprocess.DEVNULL,
+                           timeout=timeout or VERIFY_TIMEOUT, stdin=subprocess.DEVNULL,
                            env=dict(os.environ, GEARSHIFT_MODE="off"))
+    except subprocess.TimeoutExpired:
+        return None, "timeout"
     except (subprocess.SubprocessError, OSError):
         return None, ""
     tail = ((p.stderr or "") + (p.stdout or "")).strip()[-600:]
     return p.returncode == 0, tail
+
+
+def _verify_label(check: Tuple[Optional[bool], str]) -> Optional[str]:
+    if check[0] is None:
+        return "timeout" if check[1] == "timeout" else None
+    return "pass" if check[0] else "fail"
+
+
+def _should_check(cfg: Mapping[str, Any], task: Optional[Mapping[str, Any]], mutating: bool, edited: bool) -> bool:
+    """Run the user's check after this subagent?
+
+    An agent whose definition has no Edit or Write is never checked, whatever the task looked
+    like: in the live runs 9 of 10 reviews were flagged as code changes and the suite ran after
+    each. For an agent that can edit: when the task read as a change, or it did use an edit tool."""
+    if cfg["mode"] not in ("fill", "strict") or not cfg.get("verify") or not task:
+        return False
+    if task.get("rw") is False:
+        return False
+    return bool(mutating or edited)
+
+
+def _log(event: Dict[str, Any]) -> None:
+    """Every ledger line also goes to debug.log. It used to hold route lines only."""
+    ledger.append_event(state_dir(), event)
+    _debug("%s %s" % (event.get("ev"), json.dumps(event, default=str)))
+
+
+def _edited_in_response(resp: Mapping[str, Any]) -> bool:
+    stats = resp.get("toolStats")
+    if isinstance(stats, dict) and (stats.get("editFileCount") or 0) > 0:
+        return True
+    used = resp.get("toolsUsed")
+    return isinstance(used, list) and any(t in WRITE_TOOLS for t in used)
+
+
+def on_pre_message(inp: Mapping[str, Any]) -> Optional[dict]:
+    """SendMessage to a subagent that already ran: more work for the same agent.
+
+    In the first long live run the main session started one fixer and then sent it six more
+    jobs this way (review fixes, whole milestones). None of them passed through the Agent
+    hooks, so none was logged, checked or read for ESCALATE. Open the task again here; the
+    result is picked up at SubagentStop like a background agent's."""
+    if inp.get("tool_name") != "SendMessage":
+        return None
+    tool_input = inp.get("tool_input")
+    if not isinstance(tool_input, dict) or not tool_input.get("to"):
+        return None
+    sid = str(inp.get("session_id") or "")
+    st = load_session(sid)
+    task = next((t for t in reversed(st.get("tasks") or []) if t.get("agent") and t.get("agent") == tool_input.get("to")), None)
+    if task is None:
+        return None     # a teammate or another session, not one of our subagents
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd")
+    cfg = load_config(project_dir)
+    if cfg["mode"] == "off":
+        return None
+    summary = str(tool_input.get("summary") or "")
+    d = _router(cfg).route(str(tool_input.get("message") or ""), description=summary or None,
+                           agent_type="general-purpose", platform="claude-code")
+    mutating = d.task_class in ("edit", "build") or "mutating" in d.flags
+    for t in st.get("tasks") or []:
+        if t.get("id") == task.get("id"):
+            t["done"], t["cur"], t["mut_now"] = False, inp.get("tool_use_id"), mutating
+            t["turn"] = int(t.get("turn") or 1) + 1
+    save_session(sid, st)
+    _log({"ev": "continue", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
+          "of": task.get("id"), "agent_id": task.get("agent"), "desc": summary[:80], "class": d.task_class,
+          "confidence": d.confidence, "mutating": mutating, "turn": int(task.get("turn") or 2)})
+    return None
 
 
 def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
@@ -490,23 +594,34 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
             if t.get("id") == inp.get("tool_use_id"):
                 t["agent"] = resp.get("agentId")
         save_session(sid, st)
-        ledger.append_event(state_dir(), {"ev": "launched", "session": inp.get("session_id"),
-                                          "tool_use_id": inp.get("tool_use_id"), "agent_id": resp.get("agentId")})
+        _log({"ev": "launched", "session": inp.get("session_id"),
+              "tool_use_id": inp.get("tool_use_id"), "agent_id": resp.get("agentId")})
         return None
-    reason = outcomes.escalation_in(resp)
+    # only what the agent answered. The response also carries the prompt back, and a prompt
+    # that quotes an ESCALATE: line must not count as one.
+    reason = outcomes.escalation_in(outcomes.final_answer(resp))
     failed = outcomes.failed_status(resp)
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd")
     cfg = load_config(project_dir)
     st = load_session(sid)
-    task = next((t for t in st.get("tasks") or [] if t.get("id") == inp.get("tool_use_id")), None)
+    task = None
+    for t in st.get("tasks") or []:
+        if t.get("id") == inp.get("tool_use_id"):
+            # keep the agent id: if the main session sends this agent more work with
+            # SendMessage, that is how we find the task again
+            t["agent"], t["done"] = resp.get("agentId"), True
+            task = dict(t)
+    if task:
+        save_session(sid, st)
 
     # the failure nobody announces: the subagent says "done" and the work is wrong.
     # if the user gave us a check and this subagent changed code, run it.
     check: Tuple[Optional[bool], str] = (None, "")
-    if (cfg["mode"] in ("fill", "strict") and cfg.get("verify") and task and task.get("mut")
+    if (_should_check(cfg, task, bool(task and task.get("mut")), _edited_in_response(resp))
             and not reason and not failed):
-        check = _run_verify(cfg["verify"], project_dir)
+        check = _run_verify(cfg["verify"], project_dir, cfg["verify_timeout"])
     bad_check = check[0] is False
+    timed_out = _verify_label(check) == "timeout"
 
     event = {
         "ev": "done", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
@@ -518,9 +633,15 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         event["escalated"], event["escalate_reason"] = True, reason
     if failed:
         event["failed"] = True
-    if check[0] is not None:
-        event["verify"] = "pass" if check[0] else "fail"
-    ledger.append_event(state_dir(), event)
+    if _verify_label(check):
+        event["verify"] = _verify_label(check)
+    _log(event)
+    if timed_out and cfg["mode"] in ("fill", "strict"):
+        # not a failure, but not silent either: the result went unchecked and the user should know
+        return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": (
+            "gearshift: your check (`%s`) did not finish within %d seconds, so this subagent's result "
+            "was not checked. Raise verify_timeout (up to 120) or use a faster check."
+            % (cfg["verify"], cfg["verify_timeout"]))}}
     if not (reason or failed or bad_check) or task is None:
         return None
 
@@ -561,7 +682,7 @@ def on_subagent_stop(inp: Mapping[str, Any]) -> Optional[dict]:
         return None
     facts = _session_facts(inp)
     counter = ledger.counterfactual_cost(usage["per_request"], facts["model"]) if facts["model"] else None
-    ledger.append_event(state_dir(), {
+    _log({
         "ev": "usage", "session": inp.get("session_id"), "agent_id": inp.get("agent_id"),
         "agent_type": inp.get("agent_type"), "requests": usage["requests"],
         "by_model": usage["by_model"], "cost_by_model": usage["cost_by_model"],
@@ -576,10 +697,15 @@ def _background_outcome(inp: Mapping[str, Any], transcript: str) -> Optional[dic
     """A background agent just finished. This is the only place its real result is visible."""
     sid = str(inp.get("session_id") or "")
     st = load_session(sid)
-    task = next((t for t in st.get("tasks") or []
-                 if t.get("agent") and t.get("agent") == inp.get("agent_id") and not t.get("done")), None)
+    task = next((t for t in reversed(st.get("tasks") or [])
+                 if t.get("agent") and t.get("agent") == inp.get("agent_id")), None)
     if task is None:
-        return None     # a foreground agent: PostToolUse sees its result and handles it
+        return None     # a foreground agent's first run: PostToolUse sees its result and handles it
+    # an agent we already saw finish has stopped again: the main session sent it more work
+    # with SendMessage. Same reading as a background agent, logged under the message's id.
+    continued = bool(task.get("done")) or int(task.get("turn") or 1) > 1
+    event_id = (task.get("cur") or task.get("id")) if continued else task.get("id")
+    mutating = bool(task.get("mut_now")) if (continued and task.get("cur")) else bool(task.get("mut"))
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd")
     cfg = load_config(project_dir)
     text = inp.get("last_assistant_message")
@@ -588,14 +714,13 @@ def _background_outcome(inp: Mapping[str, Any], transcript: str) -> Optional[dic
     reason = outcomes.escalation_in(text)
     retrying = bool(inp.get("stop_hook_active"))
     check: Tuple[Optional[bool], str] = (None, "")
-    if cfg["mode"] in ("fill", "strict") and cfg.get("verify") and task.get("mut") and not reason:
-        check = _run_verify(cfg["verify"], project_dir)
+    if not reason and _should_check(cfg, task, mutating, bool(ledger.transcript_tools(transcript) & WRITE_TOOLS)):
+        check = _run_verify(cfg["verify"], project_dir, cfg["verify_timeout"])
     bad_check = check[0] is False
     if bad_check and not retrying and cfg["mode"] != "off":
         # don't let it leave yet: hand the failure back to the subagent once
-        ledger.append_event(state_dir(), {"ev": "check", "session": inp.get("session_id"),
-                                          "tool_use_id": task.get("id"), "agent_id": inp.get("agent_id"),
-                                          "verify": "fail", "sent_back": True})
+        _log({"ev": "check", "session": inp.get("session_id"), "tool_use_id": event_id,
+              "agent_id": inp.get("agent_id"), "verify": "fail", "sent_back": True})
         # the whole command, not a cut one: in the first live run the subagent could not
         # run the check again because the message stopped at 120 characters
         return {"decision": "block", "reason": (
@@ -603,17 +728,21 @@ def _background_outcome(inp: Mapping[str, Any], transcript: str) -> Optional[dic
             "Fix it and run the check again. If you cannot make it pass, stop and reply with a first "
             "line that starts with ESCALATE: and one sentence on why. Either way, end with your full "
             "report of what you changed: your earlier reply was not delivered." % (cfg["verify"], check[1]))}
-    event = {"ev": "done", "session": inp.get("session_id"), "tool_use_id": task.get("id"),
+    event = {"ev": "done", "session": inp.get("session_id"), "tool_use_id": event_id,
              "agent_id": inp.get("agent_id"), "status": "completed", "background": True}
+    if continued:
+        event["continued"], event["of"] = True, task.get("id")
     if reason:
         event["escalated"], event["escalate_reason"] = True, reason
-    if check[0] is not None:
-        event["verify"] = "pass" if check[0] else "fail"
-    ledger.append_event(state_dir(), event)
+    if _verify_label(check):
+        event["verify"] = _verify_label(check)
+    _log(event)
     st = load_session(sid)
     for t in st.get("tasks") or []:
         if t.get("id") == task.get("id"):
             t["done"] = True
+            t.pop("cur", None)
+            t.pop("mut_now", None)
             if reason or bad_check:
                 t["short"] = True      # sent again, it starts one rung up
     save_session(sid, st)
@@ -699,6 +828,7 @@ HANDLERS: Dict[str, Callable[[Mapping[str, Any]], Optional[dict]]] = {
     "session-start": on_session_start,
     "pre-agent": on_pre_agent,
     "post-agent": on_post_agent,
+    "pre-message": on_pre_message,
     "subagent-stop": on_subagent_stop,
     "user-prompt": on_user_prompt,
     "pre-model-switch": on_pre_model_switch,

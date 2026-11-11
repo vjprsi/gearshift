@@ -5,13 +5,14 @@
       { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook session-start", "timeout": 10 } ] }
     ],
     "PreToolUse": [
-      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-agent", "timeout": 30 } ] }
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-agent", "timeout": 30 } ] },
+      { "matcher": "SendMessage", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-message", "timeout": 10 } ] }
     ],
     "PostToolUse": [
-      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 30 } ] }
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 130 } ] }
     ],
     "SubagentStop": [
-      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook subagent-stop", "timeout": 30 } ] }
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook subagent-stop", "timeout": 130 } ] }
     ],
     "UserPromptSubmit": [
       { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook user-prompt", "timeout": 10 } ] }

@@ -26,6 +26,8 @@ make my subagents more expensive.
               comes back, the hook runs it in the project folder; if it fails, Claude is told
               not to build on that result and to redo it one step up. Limit 25 seconds.
               Not settable from a project file: it runs a command on your machine.
+  verify_timeout  seconds the check may take, 5 to 120 (default 25). A check that runs out of
+              time is logged as "timeout" and the result counts as unchecked, not as failed.
   probe       0 (default) to 0.5 - share of safe, read-only calls sent one step CHEAPER than
               the table says, to find out whether the table is too generous for your work.
               Off unless you turn it on. Not settable from a project file.
@@ -58,6 +60,7 @@ DEFAULTS: Dict[str, Any] = {
     "hint": True,
     "probe": 0.0,
     "verify": "",
+    "verify_timeout": 25,
     "project_cap": None,
     "policy": None,
 }
@@ -96,6 +99,11 @@ def _apply(cfg: Dict[str, Any], src: Mapping[str, Any]) -> None:
             cfg[key] = b
     if isinstance(src.get("verify"), str):
         cfg["verify"] = src["verify"].strip()[:500]
+    if src.get("verify_timeout") is not None:
+        try:
+            cfg["verify_timeout"] = int(min(120, max(5, float(src["verify_timeout"]))))
+        except (TypeError, ValueError):
+            pass
     if src.get("probe") is not None:
         try:
             cfg["probe"] = min(0.5, max(0.0, float(src["probe"])))   # never more than half the calls

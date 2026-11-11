@@ -49,7 +49,11 @@ class PluginFiles(unittest.TestCase):
                     self.assertTrue(m, h["command"])
                     self.assertIn(m.group(1), HANDLERS)
                     seen.add(m.group(1))
-                    self.assertLessEqual(h.get("timeout", 600), 30)
+                    # the two hooks that run the user's check get the longest allowed check (120s) plus room
+                    limit = 130 if m.group(1) in ("post-agent", "subagent-stop") else 30
+                    self.assertLessEqual(h.get("timeout", 600), limit)
+                    if limit == 130:
+                        self.assertEqual(h.get("timeout"), 130)
         self.assertEqual(seen, set(HANDLERS))
         self.assertEqual(hooks["PreToolUse"][0]["matcher"], "Agent|Task")
         self.assertTrue(os.access(os.path.join(ROOT, "bin", "gearshift"), os.X_OK))

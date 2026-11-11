@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.0 (2026-11-11)
+
+Three half-hour headless sessions building the same small project, read line by line afterwards. In the first two Claude picked a pinned gearshift agent for all 39 calls, so the third ran on a copy of the plugin with the agents removed, to make the hook do the routing. Numbers and what each run cannot show are in `docs/RESULTS.md`.
+
+- `ESCALATE: none` is not an escalation. The scout ended two clean test runs that way; it was logged as falling short, and the next test run was sent one step up for nothing.
+- `ESCALATE:` is read only in what the agent answered. The tool response also carries the prompt back, and a prompt that quotes the line no longer counts.
+- Work sent to a running agent with SendMessage is now seen: logged (`continue`), checked, sent back once if the check fails, read for `ESCALATE:`. In the first run 6 of 10 code-changing jobs went this way and the hooks saw none of them. New PreToolUse hook on SendMessage.
+- The check never runs after an agent whose definition has no Edit or Write (scout, reviewer, architect, Explore, Plan). It used to follow the classifier's guess, and 9 of 10 reviews were "code changes". For an agent that can edit, it runs when the task read as a change or the agent did use an edit tool.
+- A task is a retry only if the earlier one fell short. "Run test suite M2" was being logged as a retry of "Run test suite M1" (10 of 39 calls).
+- `verify_timeout` (5 to 120 seconds, default 25). A check that runs out of time is logged as `timeout`, shown in `report`, and in the foreground Claude is told the result went unchecked. The two hooks that run the check now have 130 seconds.
+- `debug.log` gets every ledger line, not only routes. `report` shows background launches, SendMessage jobs, probes, timeouts and how many subagents were sent back.
+- `tests/cases_live_shorty.jsonl`: 45 real subagent prompts. First score 88.9% on tier, 0 under-routed. Labelled after seeing the output, so not a blind score; `docs/ACCURACY.md` says so.
+- README: the supported way to update the plugin.
+
+Not done: probing for pinned agents (possible since 1.4.3, held until this was in). `tune` does not count SendMessage jobs. For a background agent or a SendMessage job that hits the check timeout nobody is told; it is only in the ledger. A SendMessage job has no model of its own to route: it runs on whatever the agent started on.
+
 ## 1.4.3 (2026-11-11)
 
 From a review of 1.4.2. The brief said a task sent again after `ESCALATE:` starts one step up. For gearshift's own pinned agents it did not: the pin was returned before the retry was looked at, so the same agent ran on the same model again.

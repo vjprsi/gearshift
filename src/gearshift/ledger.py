@@ -133,6 +133,28 @@ def last_assistant_text(path: str) -> str:
     return ""
 
 
+def transcript_tools(path: str) -> set:
+    """Names of the tools a (sub)agent called, from its transcript. Empty if it cannot be read."""
+    names = set()
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if '"tool_use"' not in line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except ValueError:
+                    continue
+                content = (ev.get("message") or {}).get("content") if isinstance(ev, dict) else None
+                if isinstance(content, list):
+                    for b in content:
+                        if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name"):
+                            names.add(str(b["name"]))
+    except OSError:
+        pass
+    return names
+
+
 def transcript_usage(path: str) -> Dict[str, Any]:
     """Sum usage over every model request in a transcript.
 
@@ -259,12 +281,18 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
         "same_tokens_at_session_rates_usd": round(counter, 4) if (counter_known and usages) else None,
         "unpriced_models": sorted(unpriced),
         "outcomes": {
-            "finished": len(dones),
+            "finished": sum(1 for e in dones if not e.get("continued")),
+            "launched": sum(1 for e in events if e.get("ev") == "launched"),
+            "continued": sum(1 for e in events if e.get("ev") == "continue"),
+            "continued_finished": sum(1 for e in dones if e.get("continued")),
+            "sent_back": sum(1 for e in events if e.get("ev") == "check" and e.get("sent_back")),
+            "probes": sum(1 for r in routes if r.get("probe_from")),
             "escalated": sum(1 for e in dones if e.get("escalated")),
             "failed": sum(1 for e in dones if e.get("failed")),
             "retries": sum(1 for r in routes if r.get("bumped_from")),
             "check_passed": sum(1 for e in dones if e.get("verify") == "pass"),
             "check_failed": sum(1 for e in dones if e.get("verify") == "fail"),
+            "check_timeout": sum(1 for e in dones if e.get("verify") == "timeout"),
         },
     }
 
@@ -302,9 +330,21 @@ def format_report(rep: Dict[str, Any]) -> str:
     if oc.get("finished"):
         lines.append("  outcomes: %d finished, %d asked to escalate, %d errored, %d re-sent after falling short" % (
             oc["finished"], oc["escalated"], oc["failed"], oc["retries"]))
-        if oc.get("check_passed") or oc.get("check_failed"):
-            lines.append("  your check after code changes: %d passed, %d failed" % (
-                oc.get("check_passed", 0), oc.get("check_failed", 0)))
+        if oc.get("launched"):
+            lines.append("  background: %d launched, the rest ran in the foreground" % oc["launched"])
+        if oc.get("continued") or oc.get("continued_finished"):
+            lines.append("  more work sent to a running agent (SendMessage): %d sent, %d finished" % (
+                oc.get("continued", 0), oc.get("continued_finished", 0)))
+        if oc.get("probes"):
+            lines.append("  probes (one step cheaper on purpose): %d" % oc["probes"])
+        if oc.get("check_passed") or oc.get("check_failed") or oc.get("check_timeout"):
+            line = "  your check after code changes: %d passed, %d failed" % (
+                oc.get("check_passed", 0), oc.get("check_failed", 0))
+            if oc.get("check_timeout"):
+                line += ", %d ran out of time (unchecked; see verify_timeout)" % oc["check_timeout"]
+            if oc.get("sent_back"):
+                line += "; %d sent back to the subagent to fix" % oc["sent_back"]
+            lines.append(line)
     lines.append("")
     lines.append("Subagent runs measured: %d" % rep["subagents_measured"])
     for tier in ("haiku", "sonnet", "opus", "fable"):

@@ -145,6 +145,54 @@ It does, for both. So in 1.4.3 a gearshift agent that fell short and gets the sa
 
 Limits. The `ESCALATE:` was scripted, so this is plumbing again. One agent (scout), foreground, headless. Other people's pinned agents are not touched: I can't see their definitions and the choice is theirs. This also answers the open question for probing pinned agents (a per-call effort does override the definition), but nothing is built on it yet.
 
+## Three half-hour builds of the same project (1.5.0)
+
+A different project from walletcore: `shorty`, a URL shortener with an SQLite store, a CLI, an HTTP server and five milestones in a spec. Headless, Windows, Claude Code 2.1.322, Opus 5.5 main session, told to delegate searches, test runs, contained edits and a review of each milestone. `probe` 0.2, `verify` set to the project's test command, no API key so no judge. The same prompt three times:
+
+- **Run 1**: the plugin as shipped.
+- **Run 2**: `GEARSHIFT_BRIEF=0`, to see whether the hook would have to route.
+- **Run 3**: a copy of the plugin with the agents and skills removed, hooks only, brief off. Runs 1 and 2 were on 1.4.3; run 3 was on the 1.5.0 code.
+
+| | Run 1 | Run 2 | Run 3 (hooks only) |
+|---|---|---|---|
+| Wall time | 30.5 min | 26 min | 26 min |
+| Result | 5 commits, 142 tests pass | 5 commits, 143 tests pass | 5 commits, 140 tests pass |
+| Agent calls | 19 | 20 | 9 |
+| Who chose where it ran | Claude, 18 pinned agents; 1 bogus bump | Claude, 20 pinned agents | hook set the model on 2, effort on 5 more; Claude named a model on 5 |
+| Classes | lookup 10, review 5, build 3, edit 1 | build 5, lookup 5, review 5, edit 5 | review 5, build 2, lookup 1, edit 1 |
+| Unsure or low confidence | 0 | 0 | 0 |
+| More work by SendMessage | 6 (not seen by 1.4.3) | 0 | 6 (seen) |
+| Foreground / background | 9 / 10 | 0 / 20 | 4 / 5 |
+| Checks | 8 pass | 15 pass | 9 pass (6 of them after SendMessage jobs) |
+| Sent back, real escalations | 0, 0 | 0, 0 | 0, 0 |
+| Probes | 0 | 0 | 1 |
+| Total cost | $4.66 | $6.60 | $5.79 |
+| Main session | $1.84 (39%) | $1.85 (28%) | $1.24 (21%) |
+| Subagents | $2.82 | $4.75 | $4.55 |
+| Main context, start to end | 37k to 111k | 37k to 114k | 36k to 83k |
+
+No run compacted, none reached the 120k nudge. `debug.log` had route lines only in runs 1 and 2 and no errors in any run.
+
+What the runs showed, each one fixed or noted in 1.5.0:
+
+- **Turning the brief off did not make the hook route.** In run 2 Claude still picked a pinned agent for all 20 calls. The agent descriptions are enough. To exercise the hook I had to take the agents away.
+- **`ESCALATE: none`.** The scout's instructions say to end with an `ESCALATE:` line when a task is beyond it. Twice it ended a clean test run with "ESCALATE: none". Both were logged as escalations, one sent the next test run to haiku@high, and `tune` showed lookups falling short 20% of the time. Fixed.
+- **Most of the code in run 1 was written out of sight.** The main session started one fixer and then sent it six more jobs with SendMessage: review fixes and two whole milestones. Six of ten code-changing jobs had no log line, no check and nobody reading for `ESCALATE:`. Fixed: run 3 did the same thing and all six were logged and checked.
+- **Reviews were being checked.** In runs 1 and 2 nine of ten reviews read as code changes, so the test suite ran after a read-only agent. Fixed: the agent's own tool list decides.
+- **Different test runs were "retries".** "Run test suite M2" was a retry of "Run test suite M1", ten calls in all. Harmless until the false escalation above turned one into a bump. Fixed.
+- **Run 2's suite took 18.7 seconds** against a 25 second limit that failed silently. Now a setting, and a timeout is logged.
+
+What run 3 showed about the hook, which had never routed real work before:
+
+- It classified all nine calls confidently and none looks wrong to me except one: the first review went to Opus (the diff was the whole store, and the rules read it as high stakes) and cost $0.35; the four on Sonnet cost $0.12 to $0.16 each.
+- It moved two reviews from the session's Opus to Sonnet and set effort on five calls. Claude had already named a cheaper model on five of nine, and on two of those the table would have said Opus. So here the hook was a backstop more than a driver.
+- **One Opus agent did milestones 1 to 4.** The first build call rightly stayed on Opus. Then the main session kept that agent and sent it five more jobs, two of them review fixes that the table would send to Sonnet. That one agent was $3.03, two thirds of the subagent spend and about half of the run. A job sent with SendMessage has no model to set: it runs on whatever the agent started on. Routing cannot reach it. I can see it and check it now, not move it.
+- The one probe ran a review at sonnet@medium in place of sonnet@high and nothing went wrong that I can see. One probe says nothing.
+
+An observation, not a finding: run 1 (brief on) had whole milestones done by the Sonnet fixer and cost $1.94 less than run 2 (brief off), where they went to the Opus builder, and both suites pass. That is one pair of runs. They also differ in foreground against background and in SendMessage against fresh agents, and each run wrote the tests it passes.
+
+What three runs cannot show: whether `verify` catches a real mistake (no check failed in 32), whether a subagent escalates on its own (none did), whether probing is safe (one probe), whether the code from the cheaper runs is as good (I compared test counts, not the code), or anything about another project, an interactive session, or the judge.
+
 ## What it cost
 
-Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together.
+Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45.

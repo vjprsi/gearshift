@@ -54,7 +54,8 @@ class LivePayloads(unittest.TestCase):
         payload = dict(row["payload"], transcript_path=self.transcript, cwd=self.tmp)
         if row["hook"] == "SubagentStop":
             payload["agent_transcript_path"] = self.sub
-        event = {"PreToolUse": "pre-agent", "PostToolUse": "post-agent", "SubagentStop": "subagent-stop"}[row["hook"]]
+        event = {"PreToolUse": "pre-agent", "PostToolUse": "post-agent", "SubagentStop": "subagent-stop",
+                 "PreSendMessage": "pre-message"}[row["hook"]]
         e = dict(self.env)
         e.update(env)
         p = subprocess.run([sys.executable, LAUNCHER, "hook", event], input=json.dumps(payload),
@@ -272,6 +273,167 @@ class LivePayloads(unittest.TestCase):
         brief = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
         self.assertIn("starts with ESCALATE:", brief)
         self.assertIn("send the same task again", brief)
+
+    # -- 1.5.0: from two half-hour build sessions and one short session with SendMessage ------
+
+    def test_more_work_sent_with_sendmessage_is_seen_checked_and_sent_back(self):
+        # in the first long run 6 of 10 code-changing jobs went to a running fixer this way and
+        # the hooks saw none of them
+        pre, stop, post, msg, _posted, stop2, stop3 = LIVE["continued"]
+        self.assertEqual(msg["payload"]["tool_name"], "SendMessage")
+        self.assertEqual(msg["payload"]["tool_input"]["to"], post["payload"]["tool_response"]["agentId"])
+        self.send(pre)
+        self.send(stop)
+        self.send(post)
+        self.assertIsNone(self.send(msg, GEARSHIFT_VERIFY=self.failing))
+        cont = self.events("continue")[-1]
+        self.assertEqual((cont["of"], cont["desc"], cont["mutating"], cont["turn"]),
+                         (pre["payload"]["tool_use_id"], "Add transfer_count method", True, 2))
+        out = self.send(stop2, GEARSHIFT_VERIFY=self.failing)
+        self.assertEqual(out["decision"], "block")
+        self.assertEqual(len(self.events("done")), 1, "held, so the second job has no result yet")
+        self.assertTrue(stop3["payload"]["stop_hook_active"])
+        self.assertIsNone(self.send(stop3, GEARSHIFT_VERIFY=self.failing))
+        done = self.events("done")[-1]
+        self.assertEqual((done["tool_use_id"], done["of"], done["continued"], done["verify"]),
+                         (msg["payload"]["tool_use_id"], pre["payload"]["tool_use_id"], True, "fail"))
+        # the task is remembered as having fallen short, so sent again it starts one step up
+        out = self.send(dict(pre, payload=dict(pre["payload"], tool_use_id="toolu_again")))
+        self.assertEqual(out["hookSpecificOutput"]["updatedInput"]["effort"], "high")
+
+    def test_sendmessage_without_the_hook_is_still_read_at_the_stop(self):
+        # belt and braces: if the SendMessage hook did not run, a second stop of a finished agent is the signal
+        pre, stop, post, msg, _posted, stop2, stop3 = LIVE["continued"]
+        for row in (pre, stop, post):
+            self.send(row)
+        self.assertIsNone(self.send(stop2))
+        done = self.events("done")[-1]
+        self.assertTrue(done["continued"])
+        self.assertEqual(done["of"], pre["payload"]["tool_use_id"])
+
+    def test_sendmessage_to_someone_else_is_none_of_our_business(self):
+        msg = json.loads(json.dumps(LIVE["continued"][3]))
+        msg["payload"]["tool_input"]["to"] = "teammate-7"
+        self.assertIsNone(self.send(msg))
+        with open(os.path.join(self.tmp, "state", "events.jsonl")) if os.path.exists(
+                os.path.join(self.tmp, "state", "events.jsonl")) else open(os.devnull) as f:
+            self.assertNotIn("continue", f.read())
+
+    def test_an_agent_with_no_edit_or_write_is_never_checked(self):
+        # live: 9 of 10 reviews read as code changes ("...fix...") and the suite ran after each one
+        pre, stop, post = LIVE["pinned"][:3]            # gearshift:scout: Read, Grep, Glob, Bash
+        looks_like_a_change = json.loads(json.dumps(pre))
+        looks_like_a_change["payload"]["tool_input"]["prompt"] = "Fix the typo in the error message in store.py."
+        looks_like_a_change["payload"]["tool_input"]["description"] = "Fix typo"
+        self.send(looks_like_a_change, GEARSHIFT_VERIFY=self.failing)
+        route = self.events("route")[-1]
+        self.assertEqual((route["mutating"], route["can_write"]), (True, False))
+        self.assertIsNone(self.send(post, GEARSHIFT_VERIFY=self.failing))
+        self.assertNotIn("verify", self.events("done")[-1])
+
+    def test_an_agent_that_can_edit_is_checked_when_it_did_edit_whatever_the_task_looked_like(self):
+        pre, stop, post = LIVE["foreground"][:3]        # general-purpose, and the real result has editFileCount 2
+        self.assertEqual(post["payload"]["tool_response"]["toolStats"]["editFileCount"], 2)
+        reads_like_a_lookup = json.loads(json.dumps(pre))
+        reads_like_a_lookup["payload"]["tool_input"]["prompt"] = "Find where accounts are counted and list the files."
+        reads_like_a_lookup["payload"]["tool_input"]["description"] = "Find account counting"
+        self.send(reads_like_a_lookup, GEARSHIFT_VERIFY=self.failing)
+        self.assertFalse(self.events("route")[-1]["mutating"])
+        out = self.send(post, GEARSHIFT_VERIFY=self.failing)
+        self.assertIn("your check failed", out["hookSpecificOutput"]["additionalContext"])
+        self.assertEqual(self.events("done")[-1]["verify"], "fail")
+
+    def test_can_write_reads_the_definition(self):
+        from gearshift.claude_code import can_write
+        self.assertIs(can_write("gearshift:reviewer", "pinned", {"tools": "Read, Grep, Glob, Bash"}), False)
+        self.assertIs(can_write("gearshift:sorter", "pinned", {"tools": "Read, Grep, Glob, Bash, Write"}), True)
+        self.assertIs(can_write("x", "pinned", {"tools": "Read, Bash(git:*), Edit"}), True)
+        self.assertIs(can_write("gearshift:fixer", "pinned", {}), True, "no tools line means every tool")
+        self.assertIs(can_write("x", "unpinned", {"disallowedTools": "Write, Edit, NotebookEdit"}), False)
+        self.assertIs(can_write("Explore", "builtin", {}), False)
+        self.assertIs(can_write("general-purpose", "builtin", {}), True)
+        self.assertIsNone(can_write("otherplugin:thing", "unknown", {}), "cannot see it, so no claim either way")
+        # and the shipped agents say what I think they say
+        from gearshift.claude_code import agent_definition
+        for name, want in (("scout", False), ("reviewer", False), ("architect", False), ("sorter", True),
+                           ("fixer", True), ("builder", True), ("prover", True)):
+            status, fm = agent_definition("gearshift:" + name, None)
+            self.assertIs(can_write("gearshift:" + name, status, fm), want, name)
+
+    def test_an_escalate_line_in_the_echoed_prompt_is_not_the_agent_escalating(self):
+        # the tool response carries the prompt back. Only the agent's answer is read now.
+        pre, stop, post = LIVE["foreground"][:3]
+        payload = json.loads(json.dumps(post["payload"]))
+        self.assertIn("prompt", payload["tool_response"])
+        payload["tool_response"]["prompt"] += "\nIf it is beyond you, reply with:\nESCALATE: and one sentence on why"
+        self.send(pre)
+        self.assertIsNone(self.send({"hook": "PostToolUse", "payload": payload}))
+        self.assertNotIn("escalated", self.events("done")[-1])
+        from gearshift.outcomes import escalation_in, final_answer
+        self.assertIsNone(escalation_in(final_answer({"prompt": "ESCALATE: x", "description": "ESCALATE: y",
+                                                      "result": "all fine"})))
+        self.assertEqual(escalation_in(final_answer({"prompt": "p", "result": "ESCALATE: too hard"})), "too hard")
+
+    def test_a_similar_task_that_went_fine_is_not_a_retry(self):
+        # live: "Run test suite M2" was logged as a retry of "Run test suite M1", 10 of 39 calls
+        pre, stop, post = LIVE["pinned"][:3]
+        self.send(pre)
+        self.send(post)
+        self.send(dict(pre, payload=dict(pre["payload"], tool_use_id="toolu_next")))
+        route = self.events("route")[-1]
+        self.assertNotIn("retry_of", route)
+        self.assertNotIn("attempt", route)
+        self.assertEqual(route["action"], "pinned")
+
+    def test_a_check_that_runs_out_of_time_is_logged_and_said(self):
+        slow = '"%s" -c "import time; time.sleep(30)"' % sys.executable
+        pre, stop, post = LIVE["foreground"][:3]
+        self.send(pre, GEARSHIFT_VERIFY=slow, GEARSHIFT_VERIFY_TIMEOUT="1")     # 1 is below the floor of 5
+        out = self.send(post, GEARSHIFT_VERIFY=slow, GEARSHIFT_VERIFY_TIMEOUT="1")
+        note = out["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("did not finish within 5 seconds", note)
+        self.assertIn("was not checked", note)
+        done = self.events("done")[-1]
+        self.assertEqual(done["verify"], "timeout")
+        from pathlib import Path
+        from gearshift import ledger
+        text = ledger.format_report(ledger.build_report(Path(self.tmp) / "state"))
+        self.assertIn("1 ran out of time", text)
+        # unchecked is not failed: the same task again is not a retry
+        self.send(dict(pre, payload=dict(pre["payload"], tool_use_id="toolu_after")))
+        self.assertNotIn("retry_of", self.events("route")[-1])
+
+    def test_verify_timeout_setting(self):
+        from gearshift.config import load_config
+        self.assertEqual(load_config(None, env={})["verify_timeout"], 25)
+        self.assertEqual(load_config(None, env={"GEARSHIFT_VERIFY_TIMEOUT": "90"})["verify_timeout"], 90)
+        self.assertEqual(load_config(None, env={"GEARSHIFT_VERIFY_TIMEOUT": "900"})["verify_timeout"], 120)
+        self.assertEqual(load_config(None, env={"GEARSHIFT_VERIFY_TIMEOUT": "soon"})["verify_timeout"], 25)
+        with open(os.path.join(self.tmp, ".gearshift.json"), "w") as f:
+            json.dump({"verify_timeout": 120}, f)
+        self.assertEqual(load_config(self.tmp, env={})["verify_timeout"], 25, "not from a project file")
+
+    def test_debug_log_has_outcomes_not_only_routes(self):
+        pre, launch, stop1 = LIVE["background"][:3]
+        for row in (pre, launch, stop1):
+            self.send(row, GEARSHIFT_DEBUG="1")
+        with open(os.path.join(self.tmp, "state", "debug.log")) as f:
+            kinds = {line.split(" ")[1] for line in f if line.strip()}
+        self.assertTrue({"route", "launched", "usage", "done"} <= kinds, kinds)
+
+    def test_report_counts_background_and_continued(self):
+        from pathlib import Path
+        from gearshift import ledger
+        for row in LIVE["continued"][:4] + LIVE["continued"][5:6]:
+            self.send(row)
+        for row in LIVE["background"][:3]:
+            self.send(row)
+        rep = ledger.build_report(Path(self.tmp) / "state")
+        self.assertEqual((rep["outcomes"]["finished"], rep["outcomes"]["launched"], rep["outcomes"]["continued"],
+                          rep["outcomes"]["continued_finished"]), (2, 1, 1, 1))
+        text = ledger.format_report(rep)
+        self.assertIn("background: 1 launched", text)
+        self.assertIn("more work sent to a running agent (SendMessage): 1 sent, 1 finished", text)
 
 
 if __name__ == "__main__":

@@ -75,6 +75,18 @@ def find_prior(tasks: List[dict], fp: List[str], desc: str) -> Optional[dict]:
     return None
 
 
+def final_answer(resp: Any) -> Any:
+    """The part of an Agent tool response that the subagent wrote.
+
+    The response also echoes the prompt and description. A prompt can quote an ESCALATE:
+    line (mine did, in a test session), and that is the caller talking, not the agent."""
+    if not isinstance(resp, Mapping):
+        return resp
+    if "content" in resp:
+        return resp.get("content")
+    return {k: v for k, v in resp.items() if k not in ("prompt", "description", "tool_input")}
+
+
 def escalation_in(resp: Any, budget: int = 200000) -> Optional[str]:
     """Reason text if any string inside the tool response has an ESCALATE: line."""
     stack, seen = [resp], 0

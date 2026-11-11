@@ -1,7 +1,7 @@
 {
   "name": "gearshift",
   "displayName": "gearshift",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Model and effort routing for Claude Code. Sends each subagent to the cheapest model tier and effort level that will finish its task, with pinned subagents, an enforcing hook, a usage ledger and a warning before a cache-dropping model switch.",
   "author": {
     "name": "Vijay Pratap Singh",

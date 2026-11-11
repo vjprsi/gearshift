@@ -59,6 +59,24 @@ The middle row is an upper bound. It shows the plumbing works and what a perfect
 
 **Tier accuracy flatters coarse mistakes and hides fine ones.** A `review` classified as `write` is counted right if both land on Sonnet, though the effort differs.
 
+## Real subagent prompts (1.5.0): not a blind score
+
+`tests/cases_live_shorty.jsonl` is the first set I did not write. It is 45 prompts that an Opus main session really sent while building a small URL shortener in two headless runs: 39 Agent calls and 6 jobs sent to a running agent with SendMessage. Only local paths were replaced.
+
+| Set | Cases | Tier | Class | Under-routed | Over-routed |
+|---|---|---|---|---|---|
+| `cases_live_shorty.jsonl` | 45 | 88.9% | 44 of 45 | 0 | 5 |
+
+Scored once, before any rule changed, and no rule has been changed for it since. But read it for what it is:
+
+- **I labelled it after seeing the classifier's answers.** The classes were already in the ledger when I assigned mine, so this is not a blind score and it is not comparable with holdout 4.
+- **The labels came from four patterns**, by the description the main session gave: "Run test suite..." is a lookup on Haiku, "Review..." a review on Sonnet, "Implement milestone..." a build on Opus, "Fix..." or "Apply ... fixes" an edit on Sonnet. A label a person would argue with is possible.
+- **It is one project and one kind of session.** Forty-five prompts, four shapes of task, all written by the same model in the same hour.
+
+The misses, left in: five reviews went to Opus where I had Sonnet (the diff mentioned thread safety or rate limiting, which the rules read as high stakes), and one list of review fixes that begins "Review findings to fix in..." was classed as a review.
+
+What it is good for: the prompts are long (the main session writes real briefs), nothing fell to `unsure`, and nothing was under-routed. What it cannot tell you is how the classifier does on prompts unlike these.
+
 ## The safeguards that matter more than accuracy
 
 - **Haiku decisions.** Across the five English sets as they stand, 0 of the 77 tasks routed to Haiku were labelled above Haiku. The rules that protect this (a change is never a lookup, a bug hunt is never a lookup, when torn go up) are tested directly in `tests/test_routing.py`.
