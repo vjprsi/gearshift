@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.3 (2026-11-11)
+
+From a review of 1.4.2. The brief said a task sent again after `ESCALATE:` starts one step up. For gearshift's own pinned agents it did not: the pin was returned before the retry was looked at, so the same agent ran on the same model again.
+
+- Checked live first: a `model` and `effort` passed on an Agent call win over the agent's definition (scout ran on Sonnet at high when asked to).
+- So a gearshift agent that fell short and gets the same task again now runs one rung up, same agent, same instructions. A model Claude passed is kept, shadow mode only logs, the ceiling holds (the agent's own tier is always allowed). Other plugins' and your own pinned agents are left alone.
+- `report` and the status line count these as routed by gearshift (action `bumped`).
+- Six more tests on recorded payloads, including `ESCALATE:` from a pinned agent followed by the same call again.
+
+Not done: live it ran with a scripted `ESCALATE:`, one agent, foreground, headless. In shadow mode the session file records the rung a retry would have had, not the one it ran on; that was already so for unpinned agents and I have not changed it. Probing for pinned agents is now possible and not built.
+
 ## 1.4.2 (2026-11-10)
 
 I ran 1.4.1 for real: five headless sessions on Windows with a recorder next to the hooks. The main idea held (the agent id at launch is the one at SubagentStop, a failing check does hold a background subagent). Five smaller things were wrong. Write-up in `docs/RESULTS.md`.

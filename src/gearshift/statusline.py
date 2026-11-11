@@ -19,7 +19,7 @@ from .context import CONTEXT_NUDGE, main_context_tokens
 from .pricing import tier_of
 
 _ORDER = ("haiku", "sonnet", "opus", "fable")
-_ROUTED = ("filled", "overrode", "effort-only")
+_ROUTED = ("filled", "overrode", "effort-only", "bumped")
 
 
 def session_summary(session_id: Optional[str]) -> Dict[str, Any]:

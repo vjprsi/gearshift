@@ -149,6 +149,91 @@ class LivePayloads(unittest.TestCase):
         self.assertNotIn("so one step up", note)
         self.assertTrue(self.events("route")[-1]["at_ceiling"])
 
+    def escalating(self, post, tid=None, words="ESCALATE: the count depends on generated files I cannot see"):
+        """A recorded foreground result with my words in it. No pinned agent escalated live."""
+        payload = json.loads(json.dumps(post["payload"]))
+        payload["tool_response"]["content"][-1]["text"] = words
+        if tid:
+            payload["tool_use_id"] = tid
+        return {"hook": "PostToolUse", "payload": payload}
+
+    def again(self, pre, tid):
+        return dict(pre, payload=dict(pre["payload"], tool_use_id=tid))
+
+    def test_a_call_with_a_model_beats_the_pin(self):
+        # the fact the next test stands on, as recorded: same agent, same prompt, two calls
+        plain, with_model = LIVE["pinned"][2]["payload"], LIVE["pinned"][5]["payload"]
+        self.assertEqual(plain["tool_input"]["subagent_type"], "gearshift:scout")
+        self.assertNotIn("model", plain["tool_input"])
+        self.assertEqual(plain["tool_response"]["resolvedModel"], "claude-haiku-5-5")
+        self.assertEqual((with_model["tool_input"]["model"], with_model["tool_input"]["effort"]), ("sonnet", "high"))
+        self.assertEqual(with_model["tool_response"]["resolvedModel"], "claude-sonnet-5-5")
+        self.assertEqual(LIVE["pinned"][4]["payload"]["effort"], {"level": "high"}, "effort on the call won too")
+
+    def test_escalate_from_a_pinned_agent_then_the_same_agent_again_runs_one_step_up(self):
+        # found in review of 1.4.2: the brief promised "one step up" but a pinned agent was
+        # returned untouched before the retry was ever looked at, so scout ran on haiku@medium again
+        pre, stop, post = LIVE["pinned"][:3]
+        self.assertIsNone(self.send(pre), "first time the pin stands")
+        self.assertEqual(self.events("route")[-1]["action"], "pinned")
+        self.send(stop)
+        out = self.send(self.escalating(post))
+        self.assertIn("asked to escalate", out["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("model=haiku, effort=high", out["hookSpecificOutput"]["additionalContext"])
+
+        out = self.send(self.again(pre, "toolu_second"))
+        up = out["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual(up["subagent_type"], "gearshift:scout", "same agent, same instructions")
+        self.assertEqual(up["effort"], "high")
+        self.assertNotIn("model", up, "still haiku, so the pin supplies the model")
+        self.assertIn("gearshift:scout -> haiku@high (same task fell short on haiku@medium, so one step up)",
+                      out["hookSpecificOutput"]["additionalContext"])
+        route = self.events("route")[-1]
+        self.assertEqual((route["action"], route["bumped_from"], route["retry_of"]),
+                         ("bumped", "haiku@medium", pre["payload"]["tool_use_id"]))
+
+        # and if haiku@high falls short as well, the next one leaves haiku
+        self.send(self.escalating(post, tid="toolu_second"))
+        out = self.send(self.again(pre, "toolu_third"))
+        up = out["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual((up["subagent_type"], up["model"], up["effort"]), ("gearshift:scout", "sonnet", "medium"))
+
+    def fell_short_once(self):
+        pre, stop, post = LIVE["pinned"][:3]
+        self.send(pre)
+        self.send(self.escalating(post))
+        return pre, post
+
+    def test_pinned_retry_keeps_a_model_claude_passed(self):
+        pre, _ = self.fell_short_once()
+        named = self.again(pre, "toolu_named")
+        named["payload"] = dict(named["payload"], tool_input=dict(pre["payload"]["tool_input"], model="haiku"))
+        self.assertIsNone(self.send(named), "a model passed explicitly is kept, as everywhere else")
+        self.assertEqual(self.events("route")[-1]["action"], "pinned")
+
+    def test_pinned_retry_in_shadow_mode_is_logged_and_left_alone(self):
+        pre, _ = self.fell_short_once()
+        self.assertIsNone(self.send(self.again(pre, "toolu_shadow"), GEARSHIFT_MODE="shadow"))
+        self.assertEqual(self.events("route")[-1]["action"], "shadow")
+
+    def test_pinned_retry_stops_at_the_ceiling(self):
+        # ceiling haiku: haiku@high is still inside it, sonnet is not
+        pre, post = self.fell_short_once()
+        out = self.send(self.again(pre, "toolu_cap1"), GEARSHIFT_CEILING="haiku")
+        self.assertEqual(out["hookSpecificOutput"]["updatedInput"]["effort"], "high")
+        self.send(self.escalating(post, tid="toolu_cap1"), GEARSHIFT_CEILING="haiku")
+        self.assertIsNone(self.send(self.again(pre, "toolu_cap2"), GEARSHIFT_CEILING="haiku"))
+        last = self.events("route")[-1]
+        self.assertEqual((last["action"], last["at_ceiling"]), ("pinned", True))
+
+    def test_someone_elses_pinned_agent_is_never_bumped(self):
+        pre, stop, post = LIVE["pinned"][:3]
+        theirs = json.loads(json.dumps(pre))
+        theirs["payload"]["tool_input"]["subagent_type"] = "otherplugin:scout"
+        self.send(theirs)
+        self.send(self.escalating(post))
+        self.assertIsNone(self.send(self.again(theirs, "toolu_theirs2")))
+
     def test_a_reworded_retry_is_still_the_same_task(self):
         # both calls are word for word what the main session sent in the fifth live run. The second
         # one was not recognised as a retry and started on the same rung again.

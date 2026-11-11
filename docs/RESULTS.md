@@ -103,7 +103,7 @@ One session, one project.
 | Does a failing check hold a background subagent? | Yes | the reason arrives in the subagent as "Stop hook feedback", it works again, and SubagentStop fires a second time with `stop_hook_active: true` |
 | Held, can it fix the problem and leave? | Yes | check asked for a missing file; subagent created it; second check passed; ledger says `verify: pass` |
 | Is `ESCALATE:` seen for a background agent? | Yes | 5 of 5 when the check could not pass |
-| Is `ESCALATE:` seen for a foreground agent? | Not tested live | no foreground subagent escalated. I have the real result shape now and a test on it, with my words in it. |
+| Is `ESCALATE:` seen for a foreground agent? | Not in these five. Yes in the 1.4.3 run below | there a subagent was told to answer `ESCALATE:`, so it shows the reading works, not that a subagent escalates on its own |
 | Does the same task sent again start one rung up? | Yes, if it is sent word for word | sonnet@medium then sonnet@high, foreground and background |
 
 What was wrong, all fixed in 1.4.2:
@@ -120,10 +120,31 @@ Three things I did not expect:
 - In the foreground SubagentStop fires before PostToolUse, and a foreground subagent is not held: the main session is told not to build on the result and to redo it one step up. That note arrived and was followed.
 - walletcore's own suite has one test that cannot pass on Windows (it makes a folder with `?` in the name). A `verify` command that is already failing would blame every subagent for it. Run your check once by hand before you set it.
 
-What this does not show. The last two fixes (the looser retry match and asking for the full report) were made after the fifth session and have only run in tests built from that session's payloads. Everything here is headless, one machine, one small task, a Sonnet session, a general-purpose subagent. No interactive session, no pinned agent, no probing, no `tune`. The check failed because I made it fail, so this says the plumbing works, not that `verify` catches real mistakes.
+What this does not show. The last two fixes (the looser retry match and asking for the full report) were made after the fifth session and have only run in tests built from that session's payloads. Everything here is headless, one machine, one small task, a Sonnet session, a general-purpose subagent. No interactive session, no pinned agent (see the next section for that), no probing, no `tune`. The check failed because I made it fail, so this says the plumbing works, not that `verify` catches real mistakes.
 
 The payloads are in `tests/live_payloads.json` with local paths removed, and `tests/test_live_payloads.py` replays them.
 
+## A pinned agent that falls short (1.4.3)
+
+A reviewer of 1.4.2 pointed at a hole. The new line in the brief says "send the same task again and the hook starts it one step up". For gearshift's own agents that was not true: a pinned agent was returned untouched before the retry was looked at, so `gearshift:scout` sent again ran on haiku@medium again.
+
+Whether it could be fixed depended on one thing I had never checked: does a model passed on the call win over the model in the agent's definition? Two more headless sessions, same setup.
+
+| Call | Resolved model | Effort the subagent ran at |
+|---|---|---|
+| `gearshift:scout`, nothing passed | Haiku 5.5 | medium (its definition) |
+| `gearshift:scout`, `model: sonnet`, `effort: high` on the call | Sonnet 5.5 | high |
+
+It does, for both. So in 1.4.3 a gearshift agent that fell short and gets the same task again keeps its instructions and runs one rung up. Then the same thing live, scout told to answer `ESCALATE:` three times, the main session passing no model:
+
+| Attempt | What the hook did | Ran on |
+|---|---|---|
+| 1 | nothing, the pin stands | haiku@medium |
+| 2 | set effort | haiku@high |
+| 3 | set model and effort | sonnet@medium |
+
+Limits. The `ESCALATE:` was scripted, so this is plumbing again. One agent (scout), foreground, headless. Other people's pinned agents are not touched: I can't see their definitions and the choice is theirs. This also answers the open question for probing pinned agents (a per-call effort does override the definition), but nothing is built on it yet.
+
 ## What it cost
 
-Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each).
+Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together.

@@ -84,7 +84,8 @@ Never choose `max` on your own; it is for measuring a ceiling. When you re-dispa
 what the failed attempt learned so the next agent does not start from zero.
 
 Pinned agents end their reply with a line starting `ESCALATE:` when a task is beyond their
-tier. Treat that as a result, not a failure: re-dispatch one rung up with their findings.
+tier. Treat that as a result, not a failure: re-dispatch one rung up with their findings. Sending it to the same gearshift agent again
+without a model works too: the hook runs that agent one rung up.
 
 **Cheap-first retry.** When the outcome can be checked automatically, run the batch at low
 effort and re-run only the failures at high. On Anthropic's SWE-bench Pro numbers this solved

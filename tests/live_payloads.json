@@ -1,5 +1,5 @@
 {
- "_about": "Hook payloads recorded from Claude Code 2.1.322 headless on Windows, 2026-11-10. Local paths removed, nothing else changed.",
+ "_about": "Hook payloads recorded from Claude Code 2.1.322 headless on Windows, 2026-11-10 and 2026-11-11 (the 'pinned' session). Local paths removed, nothing else changed.",
  "foreground": [
   {
    "hook": "PreToolUse",
@@ -458,6 +458,260 @@
      }
     ],
     "session_crons": []
+   }
+  }
+ ],
+ "pinned": [
+  {
+   "hook": "PreToolUse",
+   "payload": {
+    "session_id": "d06400df-72ab-4606-a5b0-6fd860d34f51",
+    "permission_mode": "acceptEdits",
+    "effort": {
+     "level": "medium"
+    },
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "description": "Count test files A",
+     "prompt": "Count the files in the tests folder and reply with the number only.",
+     "subagent_type": "gearshift:scout",
+     "run_in_background": false
+    },
+    "tool_use_id": "toolu_015YqMmguq7CHswyfKbfQuft"
+   }
+  },
+  {
+   "hook": "SubagentStop",
+   "payload": {
+    "session_id": "d06400df-72ab-4606-a5b0-6fd860d34f51",
+    "permission_mode": "acceptEdits",
+    "agent_id": "abee5a35402b60d16",
+    "agent_type": "gearshift:scout",
+    "effort": {
+     "level": "medium"
+    },
+    "hook_event_name": "SubagentStop",
+    "stop_hook_active": false,
+    "last_assistant_message": "12",
+    "background_tasks": [],
+    "session_crons": []
+   }
+  },
+  {
+   "hook": "PostToolUse",
+   "payload": {
+    "session_id": "d06400df-72ab-4606-a5b0-6fd860d34f51",
+    "permission_mode": "acceptEdits",
+    "effort": {
+     "level": "medium"
+    },
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "description": "Count test files A",
+     "prompt": "Count the files in the tests folder and reply with the number only.",
+     "subagent_type": "gearshift:scout",
+     "run_in_background": false
+    },
+    "tool_response": {
+     "status": "completed",
+     "prompt": "Count the files in the tests folder and reply with the number only.",
+     "agentId": "abee5a35402b60d16",
+     "agentType": "gearshift:scout",
+     "toolsUsed": [
+      "Glob"
+     ],
+     "harnessNoteCount": 1,
+     "harnessTailCount": 0,
+     "harnessSectionHash": "83deefc3ce4afaa5",
+     "content": [
+      {
+       "type": "text",
+       "text": "<tools-used-before-summary>Glob</tools-used-before-summary>\n"
+      },
+      {
+       "type": "text",
+       "text": "12"
+      }
+     ],
+     "resolvedModel": "claude-haiku-5-5",
+     "totalDurationMs": 2700,
+     "totalTokens": 7275,
+     "totalToolUseCount": 1,
+     "usage": {
+      "output_tokens_details": {
+       "thinking_tokens": 81
+      },
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 1207,
+      "cache_read_input_tokens": 5982,
+      "output_tokens": 84,
+      "server_tool_use": {
+       "web_search_requests": 0,
+       "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+       "ephemeral_1h_input_tokens": 0,
+       "ephemeral_5m_input_tokens": 1207
+      },
+      "inference_geo": "global",
+      "iterations": [
+       {
+        "input_tokens": 2,
+        "output_tokens": 84,
+        "cache_read_input_tokens": 5982,
+        "cache_creation_input_tokens": 1207,
+        "cache_creation": {
+         "ephemeral_5m_input_tokens": 1207,
+         "ephemeral_1h_input_tokens": 0
+        },
+        "type": "message"
+       }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+     },
+     "toolStats": {
+      "readCount": 0,
+      "searchCount": 1,
+      "bashCount": 0,
+      "editFileCount": 0,
+      "linesAdded": 0,
+      "linesRemoved": 0,
+      "otherToolCount": 0
+     },
+     "canContinueAgent": true
+    },
+    "tool_use_id": "toolu_015YqMmguq7CHswyfKbfQuft",
+    "duration_ms": 2701
+   }
+  },
+  {
+   "hook": "PreToolUse",
+   "payload": {
+    "session_id": "d06400df-72ab-4606-a5b0-6fd860d34f51",
+    "permission_mode": "acceptEdits",
+    "effort": {
+     "level": "medium"
+    },
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "description": "Count test files B",
+     "prompt": "Count the files in the tests folder and reply with the number only.",
+     "subagent_type": "gearshift:scout",
+     "model": "sonnet",
+     "effort": "high",
+     "run_in_background": false
+    },
+    "tool_use_id": "toolu_01GkBPahpxc2Fa3ZFHAFxeEp"
+   }
+  },
+  {
+   "hook": "SubagentStop",
+   "payload": {
+    "session_id": "d06400df-72ab-4606-a5b0-6fd860d34f51",
+    "permission_mode": "acceptEdits",
+    "agent_id": "a377ac2104850e404",
+    "agent_type": "gearshift:scout",
+    "effort": {
+     "level": "high"
+    },
+    "hook_event_name": "SubagentStop",
+    "stop_hook_active": false,
+    "last_assistant_message": "12",
+    "background_tasks": [],
+    "session_crons": []
+   }
+  },
+  {
+   "hook": "PostToolUse",
+   "payload": {
+    "session_id": "d06400df-72ab-4606-a5b0-6fd860d34f51",
+    "permission_mode": "acceptEdits",
+    "effort": {
+     "level": "medium"
+    },
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+     "description": "Count test files B",
+     "prompt": "Count the files in the tests folder and reply with the number only.",
+     "subagent_type": "gearshift:scout",
+     "model": "sonnet",
+     "effort": "high",
+     "run_in_background": false
+    },
+    "tool_response": {
+     "status": "completed",
+     "prompt": "Count the files in the tests folder and reply with the number only.",
+     "agentId": "a377ac2104850e404",
+     "agentType": "gearshift:scout",
+     "toolsUsed": [
+      "Glob"
+     ],
+     "harnessNoteCount": 0,
+     "harnessTailCount": 0,
+     "harnessSectionHash": "a3ac9c859ad46534",
+     "content": [
+      {
+       "type": "text",
+       "text": "12"
+      }
+     ],
+     "resolvedModel": "claude-sonnet-5-5",
+     "totalDurationMs": 2275,
+     "totalTokens": 7142,
+     "totalToolUseCount": 1,
+     "usage": {
+      "output_tokens_details": {
+       "thinking_tokens": 0
+      },
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 1152,
+      "cache_read_input_tokens": 5985,
+      "output_tokens": 3,
+      "server_tool_use": {
+       "web_search_requests": 0,
+       "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+       "ephemeral_1h_input_tokens": 0,
+       "ephemeral_5m_input_tokens": 1152
+      },
+      "inference_geo": "global",
+      "iterations": [
+       {
+        "input_tokens": 2,
+        "output_tokens": 3,
+        "cache_read_input_tokens": 5985,
+        "cache_creation_input_tokens": 1152,
+        "cache_creation": {
+         "ephemeral_5m_input_tokens": 1152,
+         "ephemeral_1h_input_tokens": 0
+        },
+        "type": "message"
+       }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+     },
+     "toolStats": {
+      "readCount": 0,
+      "searchCount": 1,
+      "bashCount": 0,
+      "editFileCount": 0,
+      "linesAdded": 0,
+      "linesRemoved": 0,
+      "otherToolCount": 0
+     },
+     "canContinueAgent": true
+    },
+    "tool_use_id": "toolu_01GkBPahpxc2Fa3ZFHAFxeEp",
+    "duration_ms": 2276
    }
   }
  ]

@@ -57,7 +57,7 @@ _BRIEF = (
     "When an Agent call names no model, gearshift's hook fills one in from the task "
     "(mode: {mode}; it never assigns a tier above {cap}); a model passed explicitly is kept{strict}. "
     "If a subagent's reply starts with ESCALATE:, the task was beyond it: send the same task again "
-    "without a model and the hook starts it one step up. "
+    "without a model, to the same agent, and the hook starts it one step up. "
     "The gearshift:routing skill has the full table, the escalation ladder and when not to delegate."
 )
 
@@ -226,6 +226,38 @@ def _can_set_effort(cfg: Mapping[str, Any], version: Optional[str]) -> bool:
             or (cfg["set_effort"] == "auto" and v is not None and v >= EFFORT_PARAM_MIN_VERSION))
 
 
+def _bump_pinned(rec: Dict[str, Any], tool_input: Mapping[str, Any], fm: Mapping[str, str],
+                 retry_from: Tuple[str, str], cfg: Mapping[str, Any], session_tier: Optional[str],
+                 version: Optional[str], router: Router) -> None:
+    """One of our own pinned agents fell short and the same task came back to it.
+
+    A pin is the author's choice and normally stands. But I checked live (2.1.322): a model and
+    effort passed on the call win over the agent's definition. So the retry can keep the agent
+    and its instructions and still run one rung up. Other people's pinned agents are left alone."""
+    rec["bumped_from"] = "%s@%s" % retry_from
+    up = outcomes.next_rung(retry_from[0], retry_from[1], router.policy)
+    pin = fm["model"]
+    cap = effective_ceiling(cfg, session_tier)
+    # the agent's own tier is always allowed: Claude already chose to run it there
+    top = pin if not cap or tier_rank(pin) > tier_rank(cap) else cap
+    if not up or tier_rank(up[0]) > tier_rank(top):
+        rec["at_ceiling"] = True
+        return
+    updated = dict(tool_input)
+    if up[0] != pin:
+        updated["model"] = up[0]
+    if _can_set_effort(cfg, version) and not tool_input.get("effort"):
+        updated["effort"] = up[1]
+    if updated == dict(tool_input):
+        return      # an effort step on a version that cannot set effort: nothing to do
+    rec["model"], rec["effort"] = updated.get("model"), updated.get("effort")
+    rec["want_tier"], rec["want_effort"] = up
+    if cfg["mode"] == "shadow":
+        rec["action"] = "shadow"
+        return
+    rec["action"], rec["updated"] = "bumped", updated
+
+
 def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
                       session_tier: Optional[str], version: Optional[str],
                       project_dir: Optional[str], router: Optional[Router] = None,
@@ -263,6 +295,9 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
             rec["pinned_model"] = fm["model"]
         if fm.get("effort"):
             rec["pinned_effort"] = fm["effort"]
+        if (retry_from and have_model is None and agent_type.startswith("gearshift:")
+                and fm.get("model") in TIERS):
+            _bump_pinned(rec, tool_input, fm, retry_from, cfg, session_tier, version, router)
         return rec
 
     bumped = None
@@ -402,7 +437,7 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     _debug("route %s" % json.dumps(event, default=str))
     if updated is None:
         return None
-    label = "%s%s" % (rec["model"] or (rec.get("session_tier") or "session model"),
+    label = "%s%s" % (rec["model"] or rec.get("pinned_model") or rec.get("session_tier") or "session model",
                       ("@" + rec["effort"]) if rec["effort"] else "")
     why = "gearshift: %s -> %s (%s, confidence %.2f)" % (rec["agent_type"], label, rec["class"], rec["confidence"])
     if rec.get("probe_from"):

@@ -162,7 +162,7 @@ def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]
             continue
         runs.append({
             "class": r.get("class") or "unsure", "tier": tier, "effort": effort,
-            "routed_by": "gearshift" if r.get("action") in ("filled", "overrode", "effort-only") else "claude",
+            "routed_by": "gearshift" if r.get("action") in ("filled", "overrode", "effort-only", "bumped") else "claude",
             "escalated": bool(d.get("escalated")), "failed": bool(d.get("failed") or d.get("verify") == "fail"),
             "retried_higher": r["tool_use_id"] in retried_higher,
             "probe_from": r.get("probe_from"),
