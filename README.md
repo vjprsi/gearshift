@@ -227,7 +227,7 @@ This is a fresh 1.0, so here's exactly where it stands:
 
 - 126 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
-- The hook's rewrite of a real Agent call still needs mileage across Claude Code versions. It follows the documented `updatedInput` format, but please start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if the rewrite doesn't take on your version.
+- The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.
 - The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model; I don't have accuracy numbers for it on real traffic yet.
 
 ## vs claude-model-router

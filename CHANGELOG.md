@@ -10,4 +10,8 @@ First release.
 - Claude Code plugin: the `routing` skill, seven pinned subagents, hooks for SessionStart, PreToolUse and PostToolUse on Agent, SubagentStop, UserPromptSubmit, PreModelSwitch and PostModelSwitch, and three commands.
 - Prices and model table as of 2026-11-10: Fable 5.2, Opus 5.5, Sonnet 5.5, Haiku 5.5 and their predecessors.
 
-Known gaps: the hook rewrite needs mileage on real sessions across Claude Code versions, and the SDK adapter and the judge have only run against fakes so far. See Status in the README.
+Known gaps: the hooks are verified live on Claude Code 2.1.322 on Windows only, and the SDK adapter and the judge have only run against fakes so far. See Status in the README.
+
+### After release
+
+- `gearshift report` now names the agents that ran on each tier.

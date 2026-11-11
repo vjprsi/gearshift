@@ -12,9 +12,10 @@ Worst case gearshift behaves as if it wasn't installed.
   PreModelSwitch     show what a mid-session switch re-sends
   PostModelSwitch    remember the new model
 
-TODO: check on a live session whether updatedInput works without
-permissionDecision. The docs only show it together with allow/ask, so that
-is what we send by default (GEARSHIFT_PERMISSION=none to try without).
+Verified live with permissionDecision=allow (Claude Code 2.1.322, Windows).
+TODO: check whether updatedInput also works without permissionDecision. The
+docs only show it together with allow/ask, so that is what we send by default
+(GEARSHIFT_PERMISSION=none to try without).
 """
 
 from __future__ import annotations
