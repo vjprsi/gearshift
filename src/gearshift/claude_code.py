@@ -432,9 +432,21 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     resp = inp.get("tool_response")
     if not isinstance(resp, dict):
         return None
+    sid = str(inp.get("session_id") or "")
+    if str(resp.get("status") or "") == "async_launched":
+        # a background agent: this is the launch, not the result. Found out the hard way
+        # (first live session logged 19 launches as "finished"). The real ending arrives
+        # at SubagentStop, so tie the agent id to the task and wait for it there.
+        st = load_session(sid)
+        for t in st.get("tasks") or []:
+            if t.get("id") == inp.get("tool_use_id"):
+                t["agent"] = resp.get("agentId")
+        save_session(sid, st)
+        ledger.append_event(state_dir(), {"ev": "launched", "session": inp.get("session_id"),
+                                          "tool_use_id": inp.get("tool_use_id"), "agent_id": resp.get("agentId")})
+        return None
     reason = outcomes.escalation_in(resp)
     failed = outcomes.failed_status(resp)
-    sid = str(inp.get("session_id") or "")
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd")
     cfg = load_config(project_dir)
     st = load_session(sid)
@@ -509,6 +521,51 @@ def on_subagent_stop(inp: Mapping[str, Any]) -> Optional[dict]:
         "unpriced": usage["unpriced"], "session_model": facts["model"],
         "session_rate_cost_usd": counter,
     })
+    return _background_outcome(inp, str(path))
+
+
+def _background_outcome(inp: Mapping[str, Any], transcript: str) -> Optional[dict]:
+    """A background agent just finished. This is the only place its real result is visible."""
+    sid = str(inp.get("session_id") or "")
+    st = load_session(sid)
+    task = next((t for t in st.get("tasks") or []
+                 if t.get("agent") and t.get("agent") == inp.get("agent_id") and not t.get("done")), None)
+    if task is None:
+        return None     # a foreground agent: PostToolUse sees its result and handles it
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd")
+    cfg = load_config(project_dir)
+    text = inp.get("last_assistant_message")
+    if not isinstance(text, str) or not text.strip():
+        text = ledger.last_assistant_text(transcript)
+    reason = outcomes.escalation_in(text)
+    retrying = bool(inp.get("stop_hook_active"))
+    check: Tuple[Optional[bool], str] = (None, "")
+    if cfg["mode"] in ("fill", "strict") and cfg.get("verify") and task.get("mut") and not reason:
+        check = _run_verify(cfg["verify"], project_dir)
+    bad_check = check[0] is False
+    if bad_check and not retrying and cfg["mode"] != "off":
+        # don't let it leave yet: hand the failure back to the subagent once
+        ledger.append_event(state_dir(), {"ev": "check", "session": inp.get("session_id"),
+                                          "tool_use_id": task.get("id"), "agent_id": inp.get("agent_id"),
+                                          "verify": "fail", "sent_back": True})
+        return {"decision": "block", "reason": (
+            "gearshift: you are not finished. The project's check failed (`%s`):\n%s\n"
+            "Fix it and run the check again. If you cannot make it pass, stop and reply with a first "
+            "line that starts with ESCALATE: and one sentence on why." % (cfg["verify"][:120], check[1]))}
+    event = {"ev": "done", "session": inp.get("session_id"), "tool_use_id": task.get("id"),
+             "agent_id": inp.get("agent_id"), "status": "completed", "background": True}
+    if reason:
+        event["escalated"], event["escalate_reason"] = True, reason
+    if check[0] is not None:
+        event["verify"] = "pass" if check[0] else "fail"
+    ledger.append_event(state_dir(), event)
+    st = load_session(sid)
+    for t in st.get("tasks") or []:
+        if t.get("id") == task.get("id"):
+            t["done"] = True
+            if reason or bad_check:
+                t["short"] = True      # sent again, it starts one rung up
+    save_session(sid, st)
     return None
 
 

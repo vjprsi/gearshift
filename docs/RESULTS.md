@@ -73,7 +73,7 @@ What I take from it:
 - **Claude did the routing itself.** All 18 calls went to a pinned gearshift agent that Claude chose after reading the skill. The hook changed nothing, which means the hook's own routing, the judge, the escalate hint, retries and probing got no exercise in this session. They are still only tested against payloads.
 - **Almost all the subagent money was three reviews.** 98% of the spend was the Sonnet reviewer; fifteen Haiku test runs cost under two cents together. If there is more to save, it is in how reviews are done, not in test runs.
 - **The Sonnet reviewer found a real bug** in code that was already committed: with a non-UTC clock the day boundary was computed wrongly, so a daily transfer limit could be bypassed.
-- 18 finished, none asked to escalate, none errored.
+- ~~18 finished, none asked to escalate, none errored.~~ **Correction:** that line was wrong. Claude Code ran these subagents in the background, and for a background agent the PostToolUse hook fires when it is launched, not when it ends. 1.4.0 and earlier logged the launch as the result, so "18 finished" meant "18 launched" and an `ESCALATE:` would never have been seen. Fixed in 1.4.1: the real ending is read at SubagentStop. The cost figures are unaffected; they come from the subagent transcripts.
 
 ### The whole session, from Claude Code's own `/cost`
 

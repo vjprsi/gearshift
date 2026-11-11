@@ -128,7 +128,8 @@ def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]
     """One record per Agent call: what it was, where it ran, how it ended."""
     since = time.time() - days * 86400 if days else None
     events = ledger.read_events(state, since)
-    done = {e.get("tool_use_id"): e for e in events if e.get("ev") == "done" and e.get("tool_use_id")}
+    done = {e.get("tool_use_id"): e for e in events
+            if e.get("ev") == "done" and e.get("tool_use_id") and e.get("status") != "async_launched"}
     usage = {e.get("agent_id"): e for e in events if e.get("ev") == "usage" and e.get("agent_id")}
     routes = [e for e in events if e.get("ev") == "route" and e.get("tool_use_id")]
     by_id = {r["tool_use_id"]: r for r in routes}

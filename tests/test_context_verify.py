@@ -185,6 +185,74 @@ class Verify(unittest.TestCase):
             ok, _ = claude_code._run_verify('"%s" -c "import time; time.sleep(5)"' % sys.executable, self.tmp)
         self.assertIsNone(ok, "a timeout means unknown, never a failure")
 
+    def background(self, tool_input, final_text, tid="bg1", agent="agent-bg1", stop_hook_active=False, **env):
+        """What Claude Code really does with a background agent: PostToolUse at launch, SubagentStop at the end."""
+        base = {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp, "tool_name": "Agent",
+                "tool_use_id": tid}
+        self.hook("pre-agent", dict(base, tool_input=tool_input), **env)
+        launch = self.hook("post-agent", dict(base, tool_input={}, tool_response={
+            "status": "async_launched", "agentId": agent, "totalDurationMs": None}), **env)
+        sub = os.path.join(self.tmp, agent + ".jsonl")
+        with open(sub, "w") as f:
+            f.write(json.dumps({"type": "assistant", "message": {"id": "r1", "model": "claude-sonnet-5-5",
+                                "usage": {"input_tokens": 100, "output_tokens": 50},
+                                "content": [{"type": "text", "text": "Looking at the code."}]}}) + "\n")
+            f.write(json.dumps({"type": "assistant", "message": {"id": "r2", "model": "claude-sonnet-5-5",
+                                "usage": {"input_tokens": 100, "output_tokens": 50},
+                                "content": [{"type": "text", "text": final_text}]}}) + "\n")
+        stop = self.hook("subagent-stop", {"session_id": "s1", "agent_id": agent, "agent_type": "general-purpose",
+                                           "agent_transcript_path": sub, "cwd": self.tmp,
+                                           "stop_hook_active": stop_hook_active}, GEARSHIFT_STOP_DELAY="0", **env)
+        return launch, stop
+
+    def test_a_background_launch_is_not_a_result(self):
+        launch, stop = self.background(LOOKUP, "Found 14 endpoints.", GEARSHIFT_VERIFY=self.check(1))
+        self.assertEqual((launch.stdout, stop.stdout), ("", ""))
+        self.assertFalse(os.path.exists(self.marker), "nothing to check at launch, and a lookup is never checked")
+        self.assertEqual(len(self.events("launched")), 1)
+        done = self.events("done")
+        self.assertEqual(len(done), 1)
+        self.assertEqual((done[0]["tool_use_id"], done[0]["background"], done[0]["status"]), ("bg1", True, "completed"))
+
+    def test_background_escalation_is_seen_at_the_real_end(self):
+        self.background(LOOKUP, "I tried.\n\nESCALATE: the routes are generated at runtime")
+        done = self.events("done")[-1]
+        self.assertTrue(done["escalated"])
+        base = {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp, "tool_name": "Agent"}
+        p = self.hook("pre-agent", dict(base, tool_use_id="bg2", tool_input=LOOKUP))
+        up = json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual((up["model"], up["effort"]), ("haiku", "high"))
+
+    def test_background_code_change_with_failing_check_is_sent_back_once(self):
+        launch, stop = self.background(EDIT, "Done, all good.", GEARSHIFT_VERIFY=self.check(1))
+        self.assertEqual(launch.stdout, "")
+        out = json.loads(stop.stdout)
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("2 tests failed", out["reason"])
+        self.assertIn("ESCALATE:", out["reason"])
+        self.assertEqual(self.events("done"), [], "it has not finished yet, so no result is recorded")
+        # second time round it still fails: let it go, record the failure, start higher next time
+        _, stop = self.background(EDIT, "Still done.", stop_hook_active=True, GEARSHIFT_VERIFY=self.check(1))
+        self.assertEqual(stop.stdout, "")
+        self.assertEqual(self.events("done")[-1]["verify"], "fail")
+
+    def test_background_code_change_with_passing_check(self):
+        _, stop = self.background(EDIT, "Done.", GEARSHIFT_VERIFY=self.check(0))
+        self.assertEqual(stop.stdout, "")
+        self.assertEqual(self.events("done")[-1]["verify"], "pass")
+
+    def test_old_ledgers_do_not_count_launches_as_finished(self):
+        from pathlib import Path
+        from gearshift import ledger
+        from gearshift.outcomes import collect_runs
+        state = Path(self.tmp) / "old"
+        for i in range(19):
+            ledger.append_event(state, {"ev": "route", "tool_use_id": "o%d" % i, "class": "lookup", "action": "pinned",
+                                        "pinned_model": "haiku", "session": "s"})
+            ledger.append_event(state, {"ev": "done", "tool_use_id": "o%d" % i, "status": "async_launched", "session": "s"})
+        self.assertEqual(collect_runs(state), [])
+        self.assertEqual(ledger.build_report(state)["outcomes"]["finished"], 0)
+
     def test_tune_counts_a_failed_check_as_falling_short(self):
         from pathlib import Path
         from gearshift import ledger

@@ -11,7 +11,7 @@
       { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 30 } ] }
     ],
     "SubagentStop": [
-      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook subagent-stop", "timeout": 30, "async": true } ] }
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook subagent-stop", "timeout": 30 } ] }
     ],
     "UserPromptSubmit": [
       { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook user-prompt", "timeout": 10 } ] }

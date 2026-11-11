@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.1 (2026-11-10)
+
+A real bug, found by reading my own ledger from a live session.
+
+- Background subagents: Claude Code fires PostToolUse when a background agent is launched (`status: async_launched`), not when it finishes. Everything that looked at the result there (escalation, errors, the `verify` check) was looking at the wrong moment, and `report` counted launches as finished runs. The outcome is now read at SubagentStop, from the subagent's own final message.
+- `verify` for a background agent: if the check fails, the subagent is not allowed to stop yet. It gets the failing output once and is told to fix it or answer `ESCALATE:`. A second failure is recorded and the next attempt starts one rung up.
+- SubagentStop is no longer an async hook, because an async hook cannot hold the subagent back.
+- Old ledger lines that recorded a launch as "done" are ignored by `report` and `tune`.
+- `report` shows check results and explains why token counts are larger than an agent's context.
+
 ## 1.4.0 (2026-11-10)
 
 Built from the first full live session and from a colleague's point that a cheap model being confidently wrong counted as a success.

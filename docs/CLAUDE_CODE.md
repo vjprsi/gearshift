@@ -94,6 +94,8 @@ After an Agent call returns, if the task was a code change (class `edit` or `bui
 - Any other exit: recorded as `"verify": "fail"`. Claude gets the model the subagent ran on, the last 600 characters of the output, an instruction not to build on the result, and the next rung to redo it on. The task is marked as fallen short, so sending it again starts one rung up.
 - Timeout or the command could not start: recorded as nothing, treated as unknown.
 
+**Background agents.** Claude Code often runs subagents in the background. For those, PostToolUse fires at launch, so the check runs at SubagentStop instead, when the agent really finishes. A failing check there sends the output back to the subagent once (it is not allowed to stop) with the instruction to fix it or answer `ESCALATE:`. If it fails again the result is recorded as a failed check and the next attempt at the task starts one rung up.
+
 It applies whoever chose the model, the hook or Claude. If your suite takes longer than 25 seconds, point it at a fast subset. The command comes from your own settings only; a `.gearshift.json` in a repo is ignored for this key.
 
 ## Probing

@@ -108,6 +108,31 @@ def transcript_tail_info(path: Optional[str]) -> Dict[str, Optional[str]]:
     return info
 
 
+def last_assistant_text(path: str) -> str:
+    """The final answer in a (sub)agent transcript: text of its last assistant message."""
+    try:
+        lines = _tail_lines(path)
+    except OSError:
+        return ""
+    for line in reversed(lines):
+        if '"assistant"' not in line:
+            continue
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(ev, dict) or ev.get("type") != "assistant":
+            continue
+        content = (ev.get("message") or {}).get("content")
+        if isinstance(content, str) and content.strip():
+            return content
+        if isinstance(content, list):
+            text = "\n".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+            if text.strip():
+                return text
+    return ""
+
+
 def transcript_usage(path: str) -> Dict[str, Any]:
     """Sum usage over every model request in a transcript.
 
@@ -177,7 +202,8 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
     if session:
         events = [e for e in events if e.get("session") == session]
     routes = [e for e in events if e.get("ev") == "route"]
-    dones = [e for e in events if e.get("ev") == "done"]
+    # ledgers written before 1.4.1 logged a background launch as "done". it wasn't.
+    dones = [e for e in events if e.get("ev") == "done" and e.get("status") != "async_launched"]
     usages: Dict[str, Dict[str, Any]] = {}
     for e in events:
         if e.get("ev") == "usage" and e.get("agent_id"):
