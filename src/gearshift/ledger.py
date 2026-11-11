@@ -237,6 +237,8 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
             "escalated": sum(1 for e in dones if e.get("escalated")),
             "failed": sum(1 for e in dones if e.get("failed")),
             "retries": sum(1 for r in routes if r.get("bumped_from")),
+            "check_passed": sum(1 for e in dones if e.get("verify") == "pass"),
+            "check_failed": sum(1 for e in dones if e.get("verify") == "fail"),
         },
     }
 
@@ -273,6 +275,9 @@ def format_report(rep: Dict[str, Any]) -> str:
     if oc.get("finished"):
         lines.append("  outcomes: %d finished, %d asked to escalate, %d errored, %d re-sent after falling short" % (
             oc["finished"], oc["escalated"], oc["failed"], oc["retries"]))
+        if oc.get("check_passed") or oc.get("check_failed"):
+            lines.append("  your check after code changes: %d passed, %d failed" % (
+                oc.get("check_passed", 0), oc.get("check_failed", 0)))
     lines.append("")
     lines.append("Subagent runs measured: %d" % rep["subagents_measured"])
     for tier in ("haiku", "sonnet", "opus", "fable"):
@@ -286,6 +291,9 @@ def format_report(rep: Dict[str, Any]) -> str:
         if tier not in ("haiku", "sonnet", "opus", "fable"):
             lines.append("  %-7s %3d runs  %9s tokens  (no price on file)" % (
                 tier[:24], t["runs"], "{:,}".format(t["tokens"])))
+    if rep["tiers"]:
+        lines.append("  (tokens are everything billed, cache reads included, so a long run re-reading its")
+        lines.append("   context counts it each time. That is why they exceed the agent's context size.)")
     lines.append("")
     lines.append("Subagent spend at list price:            $%.4f" % rep["spend_usd"])
     cf = rep.get("same_tokens_at_session_rates_usd")

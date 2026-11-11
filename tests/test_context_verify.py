@@ -151,6 +151,9 @@ class Verify(unittest.TestCase):
         p = self.run_task(EDIT, "Done.", GEARSHIFT_VERIFY=self.check(0))
         self.assertEqual(p.stdout, "")
         self.assertEqual(self.events("done")[-1]["verify"], "pass")
+        self.run_task(EDIT, "Done again.", tid="tu5", GEARSHIFT_VERIFY=self.check(1))
+        rep = subprocess.run([sys.executable, LAUNCHER, "report"], capture_output=True, text=True, env=self.env).stdout
+        self.assertIn("your check after code changes: 1 passed, 1 failed", rep)
 
     def test_read_only_work_is_not_checked(self):
         p = self.run_task(LOOKUP, "Found 14 endpoints.", GEARSHIFT_VERIFY=self.check(1))
