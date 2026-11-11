@@ -9,6 +9,7 @@
     gearshift bench examples/bench_tasks.jsonl --simulate
     gearshift eval tests/cases_holdout4.jsonl
     gearshift doctor
+    gearshift doctor --bundle
 """
 
 from __future__ import annotations
@@ -180,9 +181,24 @@ def cmd_policy(args: argparse.Namespace) -> int:
     return 0
 
 
+def _claude_version() -> Optional[str]:
+    claude = shutil.which("claude")
+    if not claude:
+        return None
+    try:
+        return subprocess.run([claude, "--version"], capture_output=True, text=True, timeout=15).stdout.strip() or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     from .config import load_config, state_dir
     from .router import Router
+    from . import diagnose
+    if getattr(args, "bundle", False):
+        print(diagnose.format_bundle(diagnose.build_bundle(load_config(os.getcwd()), state_dir(),
+                                                           claude_version=_claude_version())))
+        return 0
     ok = True
 
     def line(good: bool, text: str) -> None:
@@ -224,16 +240,19 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print("  config: mode=%s ceiling=%s set_effort=%s announce=%s advise=%s%s" % (
         cfg["mode"], cfg["ceiling"], cfg["set_effort"], cfg["announce"], cfg["advise"],
         " project_cap=%s" % cfg["project_cap"] if cfg.get("project_cap") else ""))
-    claude = shutil.which("claude")
-    if claude:
-        try:
-            out = subprocess.run([claude, "--version"], capture_output=True, text=True, timeout=15).stdout.strip()
+    for text in diagnose.verify_lines(cfg):
+        print(text)
+    for text in diagnose.version_lines(diagnose.versions()):
+        print(text)     # a version mismatch is a warning, not a broken install
+    if shutil.which("claude"):
+        out = _claude_version()
+        if out:
             from .claude_code import EFFORT_PARAM_MIN_VERSION, _parse_version
             v = _parse_version(out)
             line(v is not None and v >= (2, 1, 251), "Claude Code %s (model-switch hooks need 2.1.251+)" % out)
             if v is not None and v < EFFORT_PARAM_MIN_VERSION:
                 print("  note: per-call effort needs 2.1.292+; on this version gearshift sets the model only")
-        except (OSError, subprocess.SubprocessError):
+        else:
             print("  note: could not run `claude --version`")
     else:
         print("  note: `claude` not on PATH (fine for API-only use)")
@@ -242,6 +261,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             print("  note: %s is set; Claude Code gives it precedence over per-subagent %s"
                   % (var, "effort" if "EFFORT" in var else "model routing in some cases"))
     print("all good" if ok else "problems found")
+    print("opening an issue? paste the output of `gearshift doctor --bundle` (no paths, prompts or commands in it)")
     return 0 if ok else 1
 
 
@@ -335,6 +355,9 @@ def build_parser() -> argparse.ArgumentParser:
     po.set_defaults(fn=cmd_policy)
 
     dr = sub.add_parser("doctor", help="check the install")
+    dr.add_argument("--bundle", action="store_true",
+                    help="print a compact diagnostic to paste into an issue: versions, settings, recent event "
+                         "statuses. No paths, prompts, descriptions or commands")
     dr.set_defaults(fn=cmd_doctor)
 
     h = sub.add_parser("hook", help="Claude Code hook entry point (reads the hook JSON on stdin)")
@@ -346,6 +369,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    for stream in (sys.stdout, sys.stderr):
+        # a Windows console in cp1252 cannot print every task text: `eval` on the Spanish set crashed
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     if not getattr(args, "fn", None):
         parser.print_help()
         return 0

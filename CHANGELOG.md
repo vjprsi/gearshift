@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0 (unreleased)
+
+- `gearshift doctor --bundle`: a short block to paste into an issue. Versions of the CLI and the plugin, settings, a week of ledger counts, the status of the last dozen events. No paths, prompts, task descriptions, session ids or commands in it.
+- `doctor` warns when the plugin and the CLI are different versions, or when a pip-installed copy is not the one answering, and prints the command that fixes it. Mine were 1.0.0 against 1.4.1 and nothing said so.
+- `doctor` prints your `verify` command back with its time limit and tells you to run it once by hand first.
+- `gearshift eval` no longer crashes on a Windows console that cannot print a task's characters.
+- Tried and removed: a note to Claude when a contained edit is sent with SendMessage to an agent running on Opus. One build with it cost $5.77 against $5.79 without, and both noted jobs still ran on Opus. `docs/RESULTS.md` has the table.
+
 ## 1.5.0 (2026-11-11)
 
 Three half-hour headless sessions building the same small project, read line by line afterwards. In the first two Claude picked a pinned gearshift agent for all 39 calls, so the third ran on a copy of the plugin with the agents removed, to make the hook do the routing. Numbers and what each run cannot show are in `docs/RESULTS.md`.

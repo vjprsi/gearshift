@@ -193,6 +193,47 @@ An observation, not a finding: run 1 (brief on) had whole milestones done by the
 
 What three runs cannot show: whether `verify` catches a real mistake (no check failed in 32), whether a subagent escalates on its own (none did), whether probing is safe (one probe), whether the code from the cheaper runs is as good (I compared test counts, not the code), or anything about another project, an interactive session, or the judge.
 
+## On the way to 2.0
+
+### A note at SendMessage time: tried, measured, removed
+
+Run 3 above had one Opus agent kept alive with SendMessage doing half the bill, including plain review fixes. So I added a note: when a SendMessage job reads as a contained edit and the agent it goes to runs on Opus, the hook tells Claude a fresh agent on Sonnet is usually cheaper. Then I ran the same build again (run 4: hooks only, brief off, same prompt, same machine).
+
+| | Run 3 (no note) | Run 4 (with the note) |
+|---|---|---|
+| Wall time | 26 min | 22 min |
+| Result | 5 commits, 140 tests pass | 5 commits, 150 tests pass |
+| Agent calls | 9 | 10 |
+| SendMessage jobs | 6 | 9 (6 of them test re-runs sent to one Haiku agent) |
+| Note fired | n/a | 2 times: "Fix M1 review findings", "Fix M3 review findings" |
+| Where those two jobs ran | Opus | Opus, both times |
+| Total cost | $5.79 | $5.77 |
+| Main session | $1.24 (21%) | $1.53 (26%) |
+| Subagents | $4.55 | $4.24 |
+| Opus subagents | $3.38 | $2.94 |
+| Checks | 9 pass | 8 pass |
+
+It did not help, so it is not in 2.0.
+
+- **Two cents apart.** That is nothing, on one pair of runs.
+- **Both noted jobs still ran on Opus.** A hook on SendMessage speaks after Claude has decided: the note arrives with the message already on its way. The first note did not change the second decision either. The M3 fixes went to the Opus agent that had built M3.
+- Run 4 did use three Opus builders ($1.04, $0.96, $0.95) where run 3 kept one alive for $3.03. I cannot credit the note with that: Claude never sent a contained edit to a fresh Sonnet agent, which is the one thing the note asks for.
+- A fresh agent has to read the files again. I did not get to measure that cost, because no job moved.
+
+What would be a different experiment: refusing the SendMessage with a reason, so Claude has to decide again. That blocks a tool call on a guess about cost, and I am not doing that without evidence that the guess is right.
+
+The `continue` line in the ledger now records the tier the running agent is on, so a report can at least show how much follow-up work rode on Opus.
+
+### The first five minutes
+
+Three things I tripped over myself on this machine, now in `doctor`:
+
+- The plugin was at 1.0.0 while the CLI said 1.4.1. `doctor` now reads Claude Code's record of installed plugins and warns when the versions differ, with the command that fixes it. Run on this machine it reported both problems I actually had (plugin 1.4.1 against 1.5.0, and a stale pip copy).
+- A `verify` command I had never run by hand. `doctor` prints it back with the time limit and says to run it once first.
+- `doctor --bundle` prints a block for an issue: versions, settings, a week of counts, the last dozen event statuses. No paths, prompts, descriptions, session ids or commands. Tested with a ledger full of marked strings; none come out.
+
+These are tested, and run by me on Windows. Nobody else has pasted a bundle yet.
+
 ## What it cost
 
-Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45.
+Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45. Run 4 was $5.77.

@@ -193,6 +193,12 @@ Options: `--days N`, `--all`, `--session ID`, `--json`.
 
 **Nothing is being routed.** Run `/gearshift:doctor`. Then check, in order: mode is `fill` or `strict`; the calls are not already naming a model (kept by design); the agent type is not pinned; the classifier is confident (`gearshift route --platform claude-code --agent-type general-purpose "<the prompt>"`). `/gearshift:report` lists the action taken for every call.
 
+**The plugin and the CLI are different versions.** `doctor` reads Claude Code's own record of installed plugins and compares it with the copy that is answering. On my machine the plugin was still 1.0.0 while the CLI said 1.4.1, and nothing told me. Now it prints a `[!!]` line with the command that fixes it (`claude plugin marketplace update gearshift`, then `claude plugin update gearshift@gearshift`, then restart). A session started with `--plugin-dir` is not in that record.
+
+**You set `verify`.** Run the command once by hand in the project folder first. `doctor` prints it back to you with the time limit. It has to exit 0 on a good tree and finish inside the limit: if it fails there, every subagent that edits is sent back to fix a problem it did not cause, and if it is too slow the results go unchecked.
+
+**Reporting a problem.** `gearshift doctor --bundle` prints a short block to paste into an issue: versions of the CLI and the plugin, settings, counts from the last 7 days of the ledger, and the status of the last dozen events. No paths, no prompts, no task descriptions, no session ids, and `verify` only as "set" or "not set". Names of agents that are not built in or gearshift's own are replaced with "custom" or "other-plugin".
+
 **"hook error" notices.** The hooks exit 0 on every failure they can catch. A notice means the shell could not start the launcher at all. On Windows without Git Bash, hooks run in PowerShell, where `sh` does not exist: install Git for Windows.
 
 **See what the hook saw.** Set `GEARSHIFT_DEBUG=1` and read `~/.claude/gearshift/debug.log`. Claude Code's own view is in `claude --debug`.
