@@ -242,7 +242,7 @@ gearshift eval tests/cases_multi.jsonl --judge api     # score it yourself: 25 t
 
 No API key at all? `GEARSHIFT_JUDGE=claude` asks through headless Claude Code instead. It's slower (it starts a session), so it's opt-in. Answers are cached on disk, a judge error or timeout leaves the call alone, and a project file can't switch the judge on.
 
-What I have NOT measured: how often the judge is right on real traffic. Without it, those 25 multilingual tasks score 32% (almost everything falls to `unsure`, so Opus). With a judge that answers correctly they score 100%, but that only proves the wiring. The real number is whatever `gearshift eval --judge api` prints on your machine, and I'd like to see it.
+First real run, nothing tuned afterwards: on those 25 multilingual tasks the router went from 32% right tier with keywords alone to 100% with the judge. Spanish/Portuguese blind set 90% to 100%, the unseen English set 90% to 97.5%. Small sets, my own labels, one run. Details in [docs/RESULTS.md](docs/RESULTS.md).
 
 ## It watches what happens next (new in 1.2)
 
@@ -263,7 +263,9 @@ review    sonnet      8    4 ( 50%)   not enough runs (8 of 20)
 
 That's example output from the test data, not from real use. "Fell short" means the subagent asked to escalate, the call errored, or the task was re-sent on a bigger model. It does not mean finished work was correct. Nothing local can tell you that, which is why going down a tier is a `bench` question and not a `tune` one.
 
-There's also a built-in benchmark now: `gearshift bench pack` runs 31 tasks with automatic checks (8 extraction, 8 small functions, 7 harder ones, 8 exact-answer reasoning) across the configs you name, and `--out results.md` writes a file you can commit. Every check in the pack is tested against a reference solution. I have not run it against the real models yet, so there are no results to show. That's the next thing.
+There's also a built-in benchmark now: `gearshift bench pack` runs 31 tasks with automatic checks (8 extraction, 8 small functions, 7 harder ones, 8 exact-answer reasoning) across the configs you name, and `--out results.md` writes a file you can commit. Every check in the pack is tested against a reference solution.
+
+I ran it once on the real models. All six configs passed all 31 tasks, so the pack only measured cost: the router was 8.8x cheaper than always-Fable and 2.9x cheaper than always-Opus, and always-Haiku was 13x cheaper than the router. In other words, on small self-contained tasks the table over-spends, and this pack is too easy to show where the cheap models break. The full table and what I make of it: [docs/RESULTS.md](docs/RESULTS.md).
 
 ## Status
 
@@ -272,7 +274,7 @@ This is 1.2, so here's exactly where it stands:
 - 171 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.
-- The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model, a local fake of the Messages API and a fake `claude` binary. I haven't run it against the real API or measured its accuracy yet, and the headless `claude` transport is the least proven part of this repo.
+- The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model, a local fake of the Messages API and a fake `claude` binary. It has now run against the real API too (numbers in [docs/RESULTS.md](docs/RESULTS.md)). The headless `claude` transport has still only met a fake binary.
 
 ## vs claude-model-router
 

@@ -5,7 +5,7 @@ Task file is JSONL:
 
     {"id": "t1", "prompt": "...", "check": {"type": "contains", "value": "42"}}
 
-check types: contains, equals, regex, json_equals, python (the code block in
+check types: contains, equals, final (last line equals), regex, json_equals, python (the code block in
 the answer is run with the asserts in "tests" appended), command (shell
 command, gets the output on stdin, exit 0 = pass). python and command run
 on your machine, so only use task files you trust.
@@ -105,6 +105,12 @@ def check_output(task: dict, output: str) -> Tuple[bool, Optional[str]]:
     if kind == "equals":
         ok = output.strip() == str(value).strip()
         return ok, None if ok else "expected exactly %r" % value
+    if kind == "final":
+        # the last line is the answer; working shown above it is allowed
+        lines = [x for x in output.strip().splitlines() if x.strip()]
+        last = lines[-1].strip().strip("*`_ .") if lines else ""
+        ok = last == str(value).strip()
+        return ok, None if ok else "expected the last line to be exactly %r" % value
     if kind == "regex":
         ok = re.search(str(value), output, re.MULTILINE | re.DOTALL) is not None
         return ok, None if ok else "expected output matching /%s/" % value

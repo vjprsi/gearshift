@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 (2026-11-10)
+
+- First real runs, published in `docs/RESULTS.md`: the judge on four labelled sets, and the benchmark pack on Haiku, Sonnet, Opus, Fable, the router and the cascade.
+- New `final` check type (the last line is the answer). The pack's eight reasoning tasks use it now: with exact match, Sonnet failed all eight on format while getting every answer right.
+- What the runs showed: the judge took the multilingual set from 32% to 100%; the pack is too easy to separate tiers, and on it always-Haiku beat the router on cost by 13x.
+
 ## 1.2.0 (2026-11-10)
 
 The router now looks at what happened after the route.
@@ -11,7 +17,7 @@ The router now looks at what happened after the route.
 - `gearshift report` shows outcome counts.
 - `gearshift bench pack`: 31 built-in tasks with automatic checks, a new `python` check type, and `--out` to write a results file.
 
-Not done: the pack has not been run against real models, so there are no published results yet. `tune` has only seen test data.
+Not done: `tune` has only seen test data.
 
 ## 1.1.0 (2026-11-10)
 

@@ -47,9 +47,9 @@ The Spanish and Portuguese verbs are mapped onto the English ones (`corrige` sco
 |---|---|---|---|
 | Keywords only | 32.0% | 1 | 16 |
 | Keywords + a judge that answers correctly | 100% | 0 | 0 |
-| Keywords + the real Haiku judge | **not measured** | | |
+| Keywords + the real Haiku judge (first run, 2026-11-10) | **100%** | 0 | 0 |
 
-The middle row is an upper bound. It shows the plumbing works and what a perfect judge would be worth. It says nothing about how good Haiku is at this. Run `gearshift eval tests/cases_multi.jsonl --judge api` and you'll know more than I do. The one under-routed task is a proof in French that fell to `unsure`, so Opus instead of Fable.
+The middle row is an upper bound. It shows the plumbing works and what a perfect judge would be worth. The third row is one real run, 25 tasks, my own labels. Encouraging, not proof. The other sets with the judge on are in [RESULTS.md](RESULTS.md). The one under-routed task is a proof in French that fell to `unsure`, so Opus instead of Fable.
 
 ## What the numbers mean
 

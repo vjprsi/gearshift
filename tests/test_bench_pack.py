@@ -313,7 +313,13 @@ class Pack(unittest.TestCase):
         for tid, value in want.items():
             self.assertEqual(self.tasks[tid]["check"]["value"], value, tid)
             self.assertTrue(check_output(self.tasks[tid], " %s \n" % value)[0], tid)
-        self.assertFalse(check_output(self.tasks["r3"], "The answer is 405.")[0], "number only means number only")
+        self.assertFalse(check_output(self.tasks["r3"], "The answer is 405.")[0])
+        self.assertFalse(check_output(self.tasks["r3"], "405\n\nWait, let me recheck: 410")[0])
+        # working above the answer is fine, the last line is what counts
+        self.assertTrue(check_output(self.tasks["r7"], "924 - 400 = 524.\n\n**524**\n")[0])
+        self.assertTrue(check_output(self.tasks["r6"], "27/216 = 1/8\n\n1/8")[0])
+        self.assertEqual(self.tasks["r1"]["check"]["type"], "final")
+        self.assertEqual(self.tasks["e5"]["check"]["type"], "equals", "the easy tasks stay strict")
 
     def test_easy_checks(self):
         ok = {"e1": "FV-20391", "e2": "negative", "e6": "Arango, Bedoya, Cardenas, Mejia, Zuluaga", "e8": "Portuguese",
