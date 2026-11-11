@@ -20,6 +20,11 @@ make my subagents more expensive.
   brief       short routing brief in context at session start (default on)
   explore     route (default) | leave - whether to touch the built-in Explore agent
   permission  allow (default) | ask | none - permissionDecision sent with a rewritten call
+  judge       auto (default) | off | api | claude
+              LLM second opinion when the keyword rules aren't confident.
+              auto = api if GEARSHIFT_API_KEY or ANTHROPIC_API_KEY is set, otherwise off.
+              claude = headless `claude -p` on your login (slower, no key).
+              Not settable from a project file: it can cost money.
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ DEFAULTS: Dict[str, Any] = {
     "brief": True,
     "explore": "route",
     "permission": "allow",
+    "judge": "auto",
     "project_cap": None,
     "policy": None,
 }
@@ -50,6 +56,7 @@ _CHOICES = {
     "set_effort": ("auto", "always", "never"),
     "explore": ("route", "leave"),
     "permission": ("allow", "ask", "none"),
+    "judge": ("auto", "off", "api", "claude"),
 }
 _BOOLS = ("announce", "advise", "brief")
 

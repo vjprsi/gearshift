@@ -5,7 +5,7 @@
       { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook session-start", "timeout": 10 } ] }
     ],
     "PreToolUse": [
-      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-agent", "timeout": 10 } ] }
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-agent", "timeout": 30 } ] }
     ],
     "PostToolUse": [
       { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 10 } ] }

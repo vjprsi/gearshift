@@ -174,8 +174,14 @@ def agent_definition(agent_type: str, project_dir: Optional[str]) -> Tuple[str, 
 
 # -- handlers ------------------------------------------------------------------
 
-def _router(cfg: Mapping[str, Any]) -> Router:
-    return Router(load_policy(cfg.get("policy") or None))
+def _router(cfg: Mapping[str, Any], with_judge: bool = False) -> Router:
+    pol = load_policy(cfg.get("policy") or None)
+    judge = None
+    if with_judge and cfg.get("judge", "auto") != "off":
+        from .judge import judge_from_config
+        judge = judge_from_config(cfg.get("judge", "auto"), policy=pol,
+                                  cache_path=state_dir() / "judge_cache.json")
+    return Router(pol, judge=judge)
 
 
 def on_session_start(inp: Mapping[str, Any]) -> Optional[dict]:
@@ -207,7 +213,7 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
                       project_dir: Optional[str], router: Optional[Router] = None) -> Dict[str, Any]:
     """Pure decision logic for one Agent call. Returns a record with
     action and, when something changes, updated (the full new input)."""
-    router = router or _router(cfg)
+    router = router or _router(cfg, with_judge=True)
     agent_type = str(tool_input.get("subagent_type") or "general-purpose")
     desc = str(tool_input.get("description") or "")
     prompt = str(tool_input.get("prompt") or "")
@@ -217,6 +223,7 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
     d = router.route(prompt, description=desc or None, agent_type=agent_type, platform="claude-code")
     rec: Dict[str, Any] = {
         "agent_type": agent_type, "class": d.task_class, "confidence": d.confidence,
+        "judged": bool(d.classification and d.classification.judged),
         "want_tier": d.tier, "want_effort": d.effort, "had_model": have_model,
         "had_effort": have_effort, "session_tier": session_tier, "action": "kept",
         "model": have_model, "effort": have_effort, "updated": None, "decision": d,
@@ -453,6 +460,8 @@ HANDLERS: Dict[str, Callable[[Mapping[str, Any]], Optional[dict]]] = {
 def main(argv: List[str]) -> int:
     """Hook entry point. Always returns 0; prints JSON only when it has a say."""
     try:
+        if os.environ.get("GEARSHIFT_INSIDE_JUDGE"):
+            return 0    # we are inside our own headless judge call: stay out of it
         handler = HANDLERS.get(argv[0] if argv else "")
         if handler is None:
             return 0

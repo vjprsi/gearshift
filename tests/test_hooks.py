@@ -22,8 +22,12 @@ DESIGN = {"subagent_type": "general-purpose", "description": "Plan the migration
           "prompt": "Plan the database migration from MySQL to Postgres with zero downtime."}
 
 
+GERMAN = {"subagent_type": "general-purpose", "description": "Dateien finden",
+          "prompt": "Finde alle Dateien, die das Zahlungsmodul importieren, und gib mir die Liste."}
+
+
 def cfg(**over):
-    c = dict(DEFAULTS)
+    c = dict(DEFAULTS, judge="off")     # tests must never call a real model
     c.update(over)
     return c
 
@@ -170,7 +174,8 @@ class HookProcess(unittest.TestCase):
                          "XDG_CONFIG_HOME": os.path.join(self.tmp, ".config"), "GEARSHIFT_STOP_DELAY": "0"})
         for k in list(self.env):
             if k.startswith(("CLAUDE_PLUGIN_OPTION_", "GEARSHIFT_MODE", "GEARSHIFT_CEILING", "CLAUDE_CODE_EFFORT_LEVEL",
-                             "CLAUDE_PROJECT_DIR")):
+                             "CLAUDE_PROJECT_DIR", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "GEARSHIFT_JUDGE", "GEARSHIFT_API_KEY",
+                             "GEARSHIFT_INSIDE_JUDGE")):
                 self.env.pop(k)
         self.transcript = os.path.join(self.tmp, "main.jsonl")
         with open(self.transcript, "w") as f:
@@ -212,6 +217,78 @@ class HookProcess(unittest.TestCase):
         self.assertIn("haiku@medium", out["systemMessage"])
         ev = [e for e in self.events() if e["ev"] == "route"][0]
         self.assertEqual((ev["action"], ev["class"], ev["session_tier"]), ("filled", "lookup", "opus"))
+
+    def _fake_api(self, reply, status=200):
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        hits = []
+
+        class H(BaseHTTPRequestHandler):
+            def do_POST(self):
+                hits.append(json.loads(self.rfile.read(int(self.headers["content-length"]))))
+                out = json.dumps({"content": [{"type": "text", "text": reply}]}).encode()
+                self.send_response(status)
+                self.send_header("content-type", "application/json")
+                self.send_header("content-length", str(len(out)))
+                self.end_headers()
+                self.wfile.write(out)
+
+            def log_message(self, *a):
+                pass
+        srv = HTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        env = {"GEARSHIFT_API_KEY": "sk-test", "ANTHROPIC_BASE_URL": "http://127.0.0.1:%d" % srv.server_port,
+               "NO_PROXY": "127.0.0.1", "no_proxy": "127.0.0.1"}
+        return hits, env
+
+    def test_unknown_language_is_left_alone_without_a_judge(self):
+        p = self.pre(GERMAN)
+        self.assertEqual(p.stdout, "")
+        self.assertEqual(self.events()[-1]["action"], "low-confidence")
+
+    def test_judge_routes_what_the_keywords_cannot(self):
+        hits, env = self._fake_api('{"class": "lookup", "changes_code": false}')
+        p = self.pre(GERMAN, **env)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"]["model"], "haiku")
+        ev = self.events()[-1]
+        self.assertEqual((ev["action"], ev["class"], ev["judged"]), ("filled", "lookup", True))
+        self.assertEqual(hits[0]["model"], "claude-haiku-5-5")
+        # same prompt again: answered from the cache file, no second model call
+        self.pre(GERMAN, **env)
+        self.assertEqual(len(hits), 1)
+
+    def test_judge_is_not_called_for_confident_calls(self):
+        hits, env = self._fake_api('{"class": "design"}')
+        p = self.pre(LOOKUP, **env)
+        self.assertEqual(json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"]["model"], "haiku")
+        self.assertEqual(hits, [])
+
+    def test_judge_failure_leaves_the_call_alone(self):
+        hits, env = self._fake_api("{}", status=500)
+        p = self.pre(GERMAN, **env)
+        self.assertEqual((p.returncode, p.stdout), (0, ""))
+        self.assertEqual(self.events()[-1]["action"], "low-confidence")
+        env["ANTHROPIC_BASE_URL"] = "http://127.0.0.1:9"     # nothing listens here
+        p = self.pre(GERMAN, **env)
+        self.assertEqual((p.returncode, p.stdout), (0, ""))
+
+    def test_judge_off_switch_and_project_file(self):
+        hits, env = self._fake_api('{"class": "lookup"}')
+        p = self.pre(GERMAN, GEARSHIFT_JUDGE="off", **env)
+        self.assertEqual((p.stdout, hits), ("", []))
+        # a repo you cloned must not be able to switch the judge on or point it elsewhere
+        with open(os.path.join(self.tmp, ".gearshift.json"), "w") as f:
+            json.dump({"judge": "api"}, f)
+        p = self.pre(GERMAN, GEARSHIFT_JUDGE="off", CLAUDE_PROJECT_DIR=self.tmp, **env)
+        self.assertEqual((p.stdout, hits), ("", []))
+
+    def test_hooks_stay_out_of_the_judge_child_session(self):
+        p = self.pre(LOOKUP, GEARSHIFT_INSIDE_JUDGE="1")
+        self.assertEqual((p.returncode, p.stdout), (0, ""))
+        self.assertEqual(self.events(), [])
 
     def test_task_alias_matches_too(self):
         p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "tool_name": "Task",
