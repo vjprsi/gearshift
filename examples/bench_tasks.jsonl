@@ -1,0 +1,30 @@
+{"id": "extract-1", "prompt": "Extract the order id from: 'Order #A-1 shipped to Bogota'. Reply with the id only.", "difficulty": 0.12, "check": {"type": "regex", "value": "."}}
+{"id": "extract-2", "prompt": "Extract the order id from: 'Order #A-2 shipped to Bogota'. Reply with the id only.", "difficulty": 0.09, "check": {"type": "regex", "value": "."}}
+{"id": "extract-3", "prompt": "Extract the order id from: 'Order #A-3 shipped to Bogota'. Reply with the id only.", "difficulty": 0.17, "check": {"type": "regex", "value": "."}}
+{"id": "extract-4", "prompt": "Extract the order id from: 'Order #A-4 shipped to Bogota'. Reply with the id only.", "difficulty": 0.08, "check": {"type": "regex", "value": "."}}
+{"id": "extract-5", "prompt": "Extract the order id from: 'Order #A-5 shipped to Bogota'. Reply with the id only.", "difficulty": 0.16, "check": {"type": "regex", "value": "."}}
+{"id": "lookup-1", "prompt": "Which of these files mentions timeout_6? a.py: retry=3  b.py: timeout_6=30  c.py: host=x. Reply with the filename.", "difficulty": 0.23, "check": {"type": "regex", "value": "."}}
+{"id": "lookup-2", "prompt": "Which of these files mentions timeout_7? a.py: retry=3  b.py: timeout_7=30  c.py: host=x. Reply with the filename.", "difficulty": 0.18, "check": {"type": "regex", "value": "."}}
+{"id": "lookup-3", "prompt": "Which of these files mentions timeout_8? a.py: retry=3  b.py: timeout_8=30  c.py: host=x. Reply with the filename.", "difficulty": 0.25, "check": {"type": "regex", "value": "."}}
+{"id": "lookup-4", "prompt": "Which of these files mentions timeout_9? a.py: retry=3  b.py: timeout_9=30  c.py: host=x. Reply with the filename.", "difficulty": 0.18, "check": {"type": "regex", "value": "."}}
+{"id": "lookup-5", "prompt": "Which of these files mentions timeout_10? a.py: retry=3  b.py: timeout_10=30  c.py: host=x. Reply with the filename.", "difficulty": 0.24, "check": {"type": "regex", "value": "."}}
+{"id": "edit-1", "prompt": "Fix the bug in this function so it returns the sum of the list for case 11: def total(xs): return sum(xs[1:])", "difficulty": 0.43, "check": {"type": "regex", "value": "."}}
+{"id": "edit-2", "prompt": "Fix the bug in this function so it returns the sum of the list for case 12: def total(xs): return sum(xs[1:])", "difficulty": 0.43, "check": {"type": "regex", "value": "."}}
+{"id": "edit-3", "prompt": "Fix the bug in this function so it returns the sum of the list for case 13: def total(xs): return sum(xs[1:])", "difficulty": 0.49, "check": {"type": "regex", "value": "."}}
+{"id": "edit-4", "prompt": "Fix the bug in this function so it returns the sum of the list for case 14: def total(xs): return sum(xs[1:])", "difficulty": 0.55, "check": {"type": "regex", "value": "."}}
+{"id": "edit-5", "prompt": "Fix the bug in this function so it returns the sum of the list for case 15: def total(xs): return sum(xs[1:])", "difficulty": 0.44, "check": {"type": "regex", "value": "."}}
+{"id": "review-1", "prompt": "Case 16: is this SQL safe from injection? query = 'SELECT * FROM users WHERE id = ' + user_id. Answer yes or no, then why.", "difficulty": 0.56, "check": {"type": "regex", "value": "."}}
+{"id": "review-2", "prompt": "Case 17: is this SQL safe from injection? query = 'SELECT * FROM users WHERE id = ' + user_id. Answer yes or no, then why.", "difficulty": 0.62, "check": {"type": "regex", "value": "."}}
+{"id": "review-3", "prompt": "Case 18: is this SQL safe from injection? query = 'SELECT * FROM users WHERE id = ' + user_id. Answer yes or no, then why.", "difficulty": 0.67, "check": {"type": "regex", "value": "."}}
+{"id": "review-4", "prompt": "Case 19: is this SQL safe from injection? query = 'SELECT * FROM users WHERE id = ' + user_id. Answer yes or no, then why.", "difficulty": 0.61, "check": {"type": "regex", "value": "."}}
+{"id": "review-5", "prompt": "Case 20: is this SQL safe from injection? query = 'SELECT * FROM users WHERE id = ' + user_id. Answer yes or no, then why.", "difficulty": 0.58, "check": {"type": "regex", "value": "."}}
+{"id": "build-1", "prompt": "Case 21: implement an LRU cache class with get/put in Python, with tests, across cache.py and test_cache.py.", "difficulty": 0.82, "check": {"type": "regex", "value": "."}}
+{"id": "build-2", "prompt": "Case 22: implement an LRU cache class with get/put in Python, with tests, across cache.py and test_cache.py.", "difficulty": 0.67, "check": {"type": "regex", "value": "."}}
+{"id": "build-3", "prompt": "Case 23: implement an LRU cache class with get/put in Python, with tests, across cache.py and test_cache.py.", "difficulty": 0.8, "check": {"type": "regex", "value": "."}}
+{"id": "build-4", "prompt": "Case 24: implement an LRU cache class with get/put in Python, with tests, across cache.py and test_cache.py.", "difficulty": 0.71, "check": {"type": "regex", "value": "."}}
+{"id": "build-5", "prompt": "Case 25: implement an LRU cache class with get/put in Python, with tests, across cache.py and test_cache.py.", "difficulty": 0.68, "check": {"type": "regex", "value": "."}}
+{"id": "design-1", "prompt": "Case 26: plan the migration of a monolith's billing module to an event-driven service; list the phases.", "difficulty": 0.76, "check": {"type": "regex", "value": "."}}
+{"id": "design-2", "prompt": "Case 27: plan the migration of a monolith's billing module to an event-driven service; list the phases.", "difficulty": 0.79, "check": {"type": "regex", "value": "."}}
+{"id": "design-3", "prompt": "Case 28: plan the migration of a monolith's billing module to an event-driven service; list the phases.", "difficulty": 0.87, "check": {"type": "regex", "value": "."}}
+{"id": "design-4", "prompt": "Case 29: plan the migration of a monolith's billing module to an event-driven service; list the phases.", "difficulty": 0.77, "check": {"type": "regex", "value": "."}}
+{"id": "design-5", "prompt": "Case 30: plan the migration of a monolith's billing module to an event-driven service; list the phases.", "difficulty": 0.83, "check": {"type": "regex", "value": "."}}

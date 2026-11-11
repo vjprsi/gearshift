@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy to <project>/.gearshift.json. A project file can only make routing more conservative: lower the ceiling, switch to shadow or off, or adjust the policy (which still cannot exceed your ceiling).",
+  "ceiling": "sonnet",
+  "policy": {
+    "signals": [
+      { "name": "house rule: anything touching KYC is high stakes", "flag": "stakes", "patterns": ["kyc", "sanctions", "aml"], "adds": {} }
+    ]
+  }
+}

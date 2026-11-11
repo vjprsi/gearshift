@@ -1,0 +1,16 @@
+#!/bin/sh
+# gearshift launcher: find a python >= 3.9 and run the CLI from this checkout.
+# For hooks: no python -> exit 0 quietly. A missing interpreter must not
+# block a Claude Code session.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+for PY in "${GEARSHIFT_PYTHON:-}" python3 python py; do
+  [ -n "$PY" ] || continue
+  if command -v "$PY" >/dev/null 2>&1 && "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+    exec "$PY" "$ROOT/bin/gearshift.py" "$@"
+  fi
+done
+if [ "$1" = "hook" ]; then
+  exit 0
+fi
+echo "gearshift: needs Python 3.9 or newer on PATH (or set GEARSHIFT_PYTHON)" >&2
+exit 1
