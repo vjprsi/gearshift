@@ -141,6 +141,11 @@ def cmd_bench(args: argparse.Namespace) -> int:
         print("gearshift: %s" % exc, file=sys.stderr)
         return 1
     print(json.dumps(result, indent=2) if args.json else format_table(result))
+    if args.out:
+        from .bench import format_markdown
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(format_markdown(result))
+        print("\nwrote %s" % args.out)
     return 0
 
 
@@ -288,7 +293,8 @@ def build_parser() -> argparse.ArgumentParser:
     e.set_defaults(fn=cmd_eval)
 
     b = sub.add_parser("bench", help="compare configurations on your own tasks: cost per finished task")
-    b.add_argument("tasks", help="JSONL of tasks with checks (see docs/BENCH.md)")
+    b.add_argument("tasks", help="JSONL of tasks with checks (see docs/BENCH.md), or `pack` for the built-in 31 tasks")
+    b.add_argument("--out", help="also write the results as a markdown file you can commit")
     b.add_argument("--configs", default="haiku@medium,sonnet@medium,opus@medium,router,cascade,cheap-first:opus")
     b.add_argument("--simulate", action="store_true", help="use the built-in toy model instead of the API")
     b.add_argument("--limit", type=int)

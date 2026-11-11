@@ -5,9 +5,12 @@ Task file is JSONL:
 
     {"id": "t1", "prompt": "...", "check": {"type": "contains", "value": "42"}}
 
-check types: contains, equals, regex, json_equals, command (shell command,
-gets the output on stdin, exit 0 = pass - it runs on your machine, so only
-use task files you trust).
+check types: contains, equals, regex, json_equals, python (the code block in
+the answer is run with the asserts in "tests" appended), command (shell
+command, gets the output on stdin, exit 0 = pass). python and command run
+on your machine, so only use task files you trust.
+
+`gearshift bench pack` runs the 31 tasks that ship with gearshift.
 
 Configs:
 
@@ -24,12 +27,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
+import sys
+import tempfile
+import time
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from .execute import BatchResult, CallResult, RunResult, run, run_batch
-from .policy import EFFORTS, TIERS
+from .policy import DATA_DIR, EFFORTS, TIERS
 from .pricing import tier_of
 from .router import Router
 
@@ -42,7 +49,39 @@ _SIM_EFFORT = {"low": -0.08, "medium": 0.0, "high": 0.05, "xhigh": 0.07, "max": 
 _SIM_OUTPUT = {"low": 300, "medium": 700, "high": 1400, "xhigh": 3000, "max": 5000}
 
 
+PACK = "pack"     # `gearshift bench pack` = the task pack shipped in the package
+
+
+def pack_path() -> str:
+    return str(DATA_DIR / "bench_pack.jsonl")
+
+
+def extract_code(output: str) -> str:
+    """The longest fenced block in the answer, or the whole answer if there is none."""
+    blocks = re.findall(r"```[a-zA-Z0-9_+\-]*[ \t]*\r?\n(.*?)```", output, re.DOTALL)
+    return max(blocks, key=len) if blocks else output
+
+
+def _run_python(code: str, tests: str, timeout: int) -> Tuple[bool, Optional[str]]:
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "candidate.py")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(code.rstrip() + "\n\n# --- checks ---\n" + tests + "\n")
+        try:
+            p = subprocess.run([sys.executable, "-I", path], capture_output=True, text=True,
+                               timeout=timeout, cwd=tmp, stdin=subprocess.DEVNULL)
+        except subprocess.TimeoutExpired:
+            return False, "timed out after %ds" % timeout
+        except OSError as exc:
+            return False, "could not run the check: %s" % exc
+    if p.returncode == 0:
+        return True, None
+    return False, (p.stderr or p.stdout or "check failed").strip()[-800:]
+
+
 def load_tasks(path: str, limit: Optional[int] = None) -> List[dict]:
+    if path == PACK:
+        path = pack_path()
     tasks = []
     with open(path, "r", encoding="utf-8") as f:
         for i, line in enumerate(f):
@@ -77,6 +116,8 @@ def check_output(task: dict, output: str) -> Tuple[bool, Optional[str]]:
             return False, "output was not valid JSON"
         ok = got == value
         return ok, None if ok else "JSON did not match the expected value"
+    if kind == "python":
+        return _run_python(extract_code(output), str(chk.get("tests") or value or ""), int(chk.get("timeout", 20)))
     if kind == "command":
         try:
             p = subprocess.run(str(value), shell=True, input=output, text=True,
@@ -170,7 +211,31 @@ def run_bench(path: str, *, configs: Sequence[str], simulate: bool = False, limi
         else:
             raise RuntimeError("unknown configuration %r" % cfg)
         rows.append(_summarize(cfg, results))
-    return {"simulated": simulate, "tasks": len(tasks), "rows": rows}
+    return {"simulated": simulate, "tasks": len(tasks), "rows": rows,
+            "source": "gearshift pack" if path == PACK else os.path.basename(path),
+            "date": time.strftime("%Y-%m-%d")}
+
+
+def format_markdown(result: Dict[str, Any]) -> str:
+    """A results file you can commit. Says what ran, when, and on which models."""
+    from .pricing import price_table
+    tiers = price_table()["tiers"]
+    lines = ["# gearshift bench results", ""]
+    if result.get("simulated"):
+        lines += ["> " + SIM_BANNER, ""]
+    lines += ["- Date: %s" % result.get("date", "?"),
+              "- Tasks: %d (%s)" % (result["tasks"], result.get("source", "?")),
+              "- Models: " + ", ".join("%s = `%s`" % (t, tiers[t]) for t in TIERS if t in tiers),
+              "- Prices: list prices in `models.json` on that date",
+              "", "| Config | Passed | Cost per finished task | Total | p90 per task | Attempts |",
+              "|---|---|---|---|---|---|"]
+    for r in result["rows"]:
+        cpf = "$%.4f" % r["cost_per_finished_task"] if r["cost_per_finished_task"] is not None else "n/a"
+        lines.append("| `%s` | %.0f%% | %s | $%.4f | $%.4f | %.2f |" % (
+            r["config"], 100 * r["pass_rate"], cpf, r["total_cost_usd"], r["p90_task_cost_usd"], r["avg_attempts"]))
+    lines += ["", "Cost per finished task is total spend, failed attempts included, divided by the tasks that passed.",
+              "One run. Model output varies between runs, so small differences here mean nothing."]
+    return "\n".join(lines) + "\n"
 
 
 def format_table(result: Dict[str, Any]) -> str:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gearshift"
-version = "1.1.0"
+version = "1.2.0"
 description = "Model and effort routing for Claude: the cheapest tier and effort that will finish each task, with reasons."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -34,4 +34,4 @@ gearshift = "gearshift.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-gearshift = ["data/*.json"]
+gearshift = ["data/*.json", "data/*.jsonl"]
