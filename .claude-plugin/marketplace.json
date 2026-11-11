@@ -1,0 +1,14 @@
+{
+  "name": "gearshift",
+  "owner": { "name": "Vijay Pratap Singh", "url": "https://github.com/vjprsi" },
+  "description": "gearshift: model and effort routing for Claude Code",
+  "plugins": [
+    {
+      "name": "gearshift",
+      "source": "./",
+      "description": "Routes each subagent to the cheapest model tier and effort level that will finish its task. Pinned subagents, an enforcing hook, a usage ledger.",
+      "category": "productivity",
+      "tags": ["model-routing", "effort", "cost", "subagents"]
+    }
+  ]
+}

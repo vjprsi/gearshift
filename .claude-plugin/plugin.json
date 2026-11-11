@@ -1,0 +1,37 @@
+{
+  "name": "gearshift",
+  "displayName": "gearshift",
+  "version": "1.0.0",
+  "description": "Model and effort routing for Claude Code. Sends each subagent to the cheapest model tier and effort level that will finish its task, with pinned subagents, an enforcing hook, a usage ledger and a warning before a cache-dropping model switch.",
+  "author": { "name": "Vijay Pratap Singh", "url": "https://github.com/vjprsi" },
+  "homepage": "https://github.com/vjprsi/gearshift",
+  "repository": "https://github.com/vjprsi/gearshift",
+  "license": "MIT",
+  "keywords": ["model-routing", "effort", "subagents", "cost", "hooks"],
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Routing mode",
+      "description": "off, shadow (log only), fill (set model and effort where the Agent call left them unset), or strict (also replace a model the orchestrator chose)",
+      "default": "fill"
+    },
+    "ceiling": {
+      "type": "string",
+      "title": "Highest tier the hook may assign",
+      "description": "session (never above the model you are running), haiku, sonnet, opus or fable",
+      "default": "session"
+    },
+    "announce": {
+      "type": "boolean",
+      "title": "Announce routed subagents",
+      "description": "Show a one-line note each time the hook routes a subagent",
+      "default": true
+    },
+    "advise": {
+      "type": "boolean",
+      "title": "Session model advice",
+      "description": "Show a one-line note on a clear mismatch between the session model and the work, and before a model switch that drops the prompt cache",
+      "default": true
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "description": "gearshift: model and effort routing for subagents, a usage ledger, and a warning before a cache-dropping model switch. Every hook fails open.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook session-start", "timeout": 10 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-agent", "timeout": 10 } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-agent", "timeout": 10 } ] }
+    ],
+    "SubagentStop": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook subagent-stop", "timeout": 30, "async": true } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook user-prompt", "timeout": 10 } ] }
+    ],
+    "PreModelSwitch": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook pre-model-switch", "timeout": 10 } ] }
+    ],
+    "PostModelSwitch": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/gearshift\" hook post-model-switch", "timeout": 10 } ] }
+    ]
+  }
+}
