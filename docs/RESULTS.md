@@ -55,6 +55,28 @@ I tried eight harder exact-answer questions (counting permutations, integer part
 
 So single-call questions with a checkable answer do not show where this generation's cheaper models break. The difference Anthropic reports is in long agent runs: many steps, tools, a real codebase. Proving or disproving the table needs that kind of benchmark, and this repo does not have one yet.
 
+## First full live session (macOS, Claude Code 2.1.322, Opus 5.5 session)
+
+About 35 minutes building a small payments wallet from scratch (accounts, transfers, idempotency keys, daily limits, fees, safe concurrent transfers, a reconciliation report; 124 tests at the end). The only instruction about routing was "delegate searches, reviews and test runs to subagents".
+
+| | Runs | Tokens | List price |
+|---|---|---|---|
+| `gearshift:scout` (Haiku), test runs | 15 | 226,824 | $0.0159 |
+| `gearshift:reviewer` (Sonnet), code reviews | 3 | 1,918,650 | $0.9598 |
+| Total | 18 | | $0.9757 |
+| Same tokens at the session's Opus rates | | | $2.5245 |
+
+61% lower on the delegated part. The second figure reprices the same tokens; Opus would not have used exactly these tokens, so it is a comparison aid.
+
+What I take from it:
+
+- **Claude did the routing itself.** All 18 calls went to a pinned gearshift agent that Claude chose after reading the skill. The hook changed nothing, which means the hook's own routing, the judge, the escalate hint, retries and probing got no exercise in this session. They are still only tested against payloads.
+- **Almost all the subagent money was three reviews.** 98% of the spend was the Sonnet reviewer; fifteen Haiku test runs cost under two cents together. If there is more to save, it is in how reviews are done, not in test runs.
+- **The Sonnet reviewer found a real bug** in code that was already committed: with a non-UTC clock the day boundary was computed wrongly, so a daily transfer limit could be bypassed.
+- 18 finished, none asked to escalate, none errored.
+
+One session, one project, and the main session's own cost is not in this table.
+
 ## What it cost
 
 Roughly $1.50 at list price for everything on this page, by my own tally of the runs.
