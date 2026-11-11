@@ -211,8 +211,12 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
         main = u.get("main_model")
         if main:
             tier = tier_of(main) or main
-            tiers.setdefault(tier, {"runs": 0, "tokens": 0, "cost_usd": 0.0, "models": set()})
-            tiers[tier]["runs"] += 1
+            t = tiers.setdefault(tier, {"runs": 0, "tokens": 0, "cost_usd": 0.0, "models": set()})
+            t["runs"] += 1
+            # which agents ran on this tier, so the report can say who is who
+            name = str(u.get("agent_type") or "unnamed")
+            agents = t.setdefault("agents", {})
+            agents[name] = agents.get(name, 0) + 1
     for t in tiers.values():
         t["models"] = sorted(t["models"])
         t["cost_usd"] = round(t["cost_usd"], 4)
@@ -263,8 +267,10 @@ def format_report(rep: Dict[str, Any]) -> str:
     for tier in ("haiku", "sonnet", "opus", "fable"):
         t = rep["tiers"].get(tier)
         if t:
-            lines.append("  %-7s %3d runs  %9s tokens  $%.4f" % (
-                tier, t["runs"], "{:,}".format(t["tokens"]), t["cost_usd"]))
+            who = ", ".join(n if c == 1 else "%s x%d" % (n, c)
+                            for n, c in sorted((t.get("agents") or {}).items(), key=lambda kv: (-kv[1], kv[0])))
+            lines.append("  %-7s %3d runs  %9s tokens  $%.4f%s" % (
+                tier, t["runs"], "{:,}".format(t["tokens"]), t["cost_usd"], ("  " + who) if who else ""))
     for tier, t in rep["tiers"].items():
         if tier not in ("haiku", "sonnet", "opus", "fable"):
             lines.append("  %-7s %3d runs  %9s tokens  (no price on file)" % (

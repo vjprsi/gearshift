@@ -372,6 +372,8 @@ class HookProcess(unittest.TestCase):
         self.assertAlmostEqual(data["spend_usd"], round(haiku, 4))
         text = subprocess.run([sys.executable, LAUNCHER, "report"], capture_output=True, text=True, env=self.env).stdout
         self.assertIn("comparison aid, not a measurement", text)
+        haiku_line = [ln for ln in text.splitlines() if ln.strip().startswith("haiku")][0]
+        self.assertTrue(haiku_line.rstrip().endswith("Explore"), haiku_line)
 
     def test_subagent_stop_with_missing_transcript(self):
         p = self.hook("subagent-stop", {"session_id": "s8", "agent_id": "zz", "agent_transcript_path": "/no/such/file"})
