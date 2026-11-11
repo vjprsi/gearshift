@@ -75,7 +75,22 @@ What I take from it:
 - **The Sonnet reviewer found a real bug** in code that was already committed: with a non-UTC clock the day boundary was computed wrongly, so a daily transfer limit could be bypassed.
 - 18 finished, none asked to escalate, none errored.
 
-One session, one project, and the main session's own cost is not in this table.
+### The whole session, from Claude Code's own `/cost`
+
+| Model | Role | Cost | Share |
+|---|---|---|---|
+| Opus 5.5 | main session | $6.39 | 87% |
+| Sonnet 5.5 | 3 reviews | $0.96 | 13% |
+| Haiku 5.5 | 15 test runs | $0.02 | 0.3% |
+| Total | | $7.37 | |
+
+So the 61% applies to 13% of the bill. Repricing the subagent tokens at Opus rates would have made the session about $8.92, which puts the routing at roughly 17% off the whole session. Same caveat as above: a comparison, not a measurement.
+
+The bigger lesson is in the Opus row. Of that $6.39, about $2.82 was cache reads (14.1 million tokens over 79 requests, so around 178,000 tokens of context re-read per request), $1.87 was output and $1.68 was cache writes. **Most of the main session's cost was carrying context, not thinking.** Claude Code's own usage screen said the same thing from another angle: 45,000 tokens per request were descriptions of installed agents (about 300 of them from other plugins, seven are gearshift's).
+
+Model routing does not touch that. Keeping the main session's context small does: clearing between tasks, removing agents and plugins that are not used, and delegating so that file reading happens in a subagent's context and not the main one.
+
+One session, one project.
 
 ## What it cost
 
