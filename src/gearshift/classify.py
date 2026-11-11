@@ -12,8 +12,9 @@ Two kinds of evidence:
 Then a few rules for the cases plain keyword scoring gets wrong. Each of
 those rules is there because a test case failed without it.
 
-TODO: English only. Spanish / Portuguese verb lists are the obvious next step;
-until then non-English tasks come out "unsure" (see judge.py).
+English, Spanish and Portuguese verbs and patterns are in the policy file.
+Anything else (or odd phrasing) comes out "unsure" and goes to the judge if
+one is configured (see judge.py).
 """
 
 from __future__ import annotations
@@ -41,14 +42,20 @@ _POLITE = re.compile(
     r"|go (?:and )?"
     r"|help me (?:to )?"
     r"|try to\s+"
-    r"|(?:task|goal|todo|objective)\s*:\s*"
+    r"|(?:task|goal|todo|objective|tarea|objetivo|tarefa)\s*:\s*"
+    # Spanish / Portuguese openers
+    r"|(?:por favor|primero|luego|despu[eé]s|ahora|tambi[eé]n|finalmente|primeiro|depois|agora)[,:]?\s+"
+    r"|(?:necesito|quiero|preciso|quero) que\s+"
+    r"|(?:puedes|podr[ií]as|pod[eé]s|voc[eê] pode|pode)\s+"
+    r"|(?:hay que|debes|tienes que|tu tarea es|sua tarefa [eé])\s+"
     r"|(?:for now|right now|before that|after that|once (?:that is |that's )?done|meanwhile|in the meantime|instead|today)[,:]?\s+"
     r")+",
     re.IGNORECASE,
 )
-_WORD = re.compile(r"[a-z][a-z\-']*", re.IGNORECASE)
-_CONJ = re.compile(r"(?:\band\b|\bthen\b|,)\s+(?:then\s+|also\s+)?([a-z][a-z\-]+)\b", re.IGNORECASE)
+_WORD = re.compile(r"[^\W\d_][\w\-']*", re.IGNORECASE)   # unicode letters: "diseña", "evalúa"
+_CONJ = re.compile(r"(?:\band\b|\bthen\b|\by\b|\be\b|\bluego\b|\bdepois\b|,)\s+(?:then\s+|also\s+|luego\s+|tambi[eé]n\s+)?([^\W\d_][\w\-]+)\b", re.IGNORECASE)
 _GERUND = re.compile(r"\b(?:after|by|while|before|when|without)\s+([a-z]+ing)\b", re.IGNORECASE)
+_BULLET_ES = re.compile(r"^[¿¡]+")
 _FILE = re.compile(
     r"(?<![\w/])[\w./\-]*\w\.(?:py|js|jsx|ts|tsx|go|rs|java|rb|php|c|cc|cpp|h|cs|kt|swift|sql|sh|yaml|yml|toml|json|md|html|css|vue|scala)\b",
     re.IGNORECASE,
@@ -65,11 +72,13 @@ class Classification:
     evidence: List[str] = field(default_factory=list)
     notes: List[str] = field(default_factory=list)
     runner_up: Optional[str] = None
+    judged: bool = False     # True when the LLM judge decided the class
 
     def to_dict(self) -> dict:
         return {
             "task_class": self.task_class,
             "confidence": self.confidence,
+            "judged": self.judged,
             "runner_up": self.runner_up,
             "scores": {k: round(v, 2) for k, v in sorted(self.scores.items(), key=lambda kv: -kv[1]) if v > 0},
             "flags": sorted(self.flags),
@@ -98,6 +107,7 @@ def _lead_verbs(text: str, known) -> List[str]:
     out: List[str] = []
     for sent in _SENT_SPLIT.split(text):
         s = _BULLET.sub("", sent.strip())
+        s = _BULLET_ES.sub("", s)
         s = _POLITE.sub("", s)
         m = _WORD.match(s)
         if not m:

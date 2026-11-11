@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "as_of": "2026-11-10",
   "about": "Routing policy for gearshift. Everything here is data: edit a copy and point GEARSHIFT_POLICY at it, or drop overrides in .gearshift.json. Patterns are case-insensitive regex fragments; the engine adds word boundaries on both ends.",
   "tiers": [
@@ -135,7 +135,7 @@
     "min_signal": 1.5,
     "torn_margin": 0.2,
     "act_confidence": 0.55,
-    "judge_below": 0.5,
+    "judge_below": 0.55,
     "frontier_min": 2.0,
     "torn_margin_per_tier_gap": [
       0.2,
@@ -1411,20 +1411,1232 @@
     },
     "disprove": {
       "frontier": 2.5
+    },
+    "encuentra": {
+      "lookup": 3
+    },
+    "encontrar": {
+      "lookup": 3
+    },
+    "encuentre": {
+      "lookup": 3
+    },
+    "encontre": {
+      "lookup": 3
+    },
+    "localiza": {
+      "lookup": 3
+    },
+    "localizar": {
+      "lookup": 3
+    },
+    "ubica": {
+      "lookup": 3
+    },
+    "ubicar": {
+      "lookup": 3
+    },
+    "busca": {
+      "lookup": 3
+    },
+    "buscar": {
+      "lookup": 3
+    },
+    "busque": {
+      "lookup": 3
+    },
+    "pesquise": {
+      "lookup": 3
+    },
+    "pesquisar": {
+      "lookup": 3
+    },
+    "procure": {
+      "lookup": 3
+    },
+    "procurar": {
+      "lookup": 3
+    },
+    "lista": {
+      "lookup": 3
+    },
+    "listar": {
+      "lookup": 3
+    },
+    "liste": {
+      "lookup": 3
+    },
+    "enumera": {
+      "lookup": 3
+    },
+    "enumerar": {
+      "lookup": 3
+    },
+    "enumere": {
+      "lookup": 3
+    },
+    "cuenta": {
+      "lookup": 3
+    },
+    "contar": {
+      "lookup": 3
+    },
+    "conte": {
+      "lookup": 3
+    },
+    "lee": {
+      "lookup": 2.5
+    },
+    "leer": {
+      "lookup": 2.5
+    },
+    "lea": {
+      "lookup": 2.5
+    },
+    "leia": {
+      "lookup": 2.5
+    },
+    "ler": {
+      "lookup": 2.5
+    },
+    "muestra": {
+      "lookup": 2.5
+    },
+    "mostrar": {
+      "lookup": 2.5
+    },
+    "muestre": {
+      "lookup": 2.5
+    },
+    "mostre": {
+      "lookup": 2.5
+    },
+    "muéstrame": {
+      "lookup": 2.5
+    },
+    "muestrame": {
+      "lookup": 2.5
+    },
+    "revisa": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "revisar": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "revise": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "comprueba": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "comprobar": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "confirma": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "confirmar": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "confira": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "conferir": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "verifica": {
+      "lookup": 2,
+      "review": 1
+    },
+    "verificar": {
+      "lookup": 2,
+      "review": 1
+    },
+    "verifique": {
+      "lookup": 2,
+      "review": 1
+    },
+    "ejecuta": {
+      "lookup": 2
+    },
+    "ejecutar": {
+      "lookup": 2
+    },
+    "ejecute": {
+      "lookup": 2
+    },
+    "corre": {
+      "lookup": 2
+    },
+    "correr": {
+      "lookup": 2
+    },
+    "executar": {
+      "lookup": 2
+    },
+    "rode": {
+      "lookup": 2
+    },
+    "rodar": {
+      "lookup": 2
+    },
+    "explora": {
+      "lookup": 2.5
+    },
+    "explorar": {
+      "lookup": 2.5
+    },
+    "identifica": {
+      "lookup": 2,
+      "review": 1
+    },
+    "identificar": {
+      "lookup": 2,
+      "review": 1
+    },
+    "identifique": {
+      "lookup": 2,
+      "review": 1
+    },
+    "consulta": {
+      "lookup": 2
+    },
+    "consultar": {
+      "lookup": 2
+    },
+    "consulte": {
+      "lookup": 2
+    },
+    "rastrea": {
+      "lookup": 2,
+      "review": 1
+    },
+    "rastrear": {
+      "lookup": 2,
+      "review": 1
+    },
+    "rastreie": {
+      "lookup": 2,
+      "review": 1
+    },
+    "obtén": {
+      "lookup": 1.5
+    },
+    "obten": {
+      "lookup": 1.5
+    },
+    "obtener": {
+      "lookup": 1.5
+    },
+    "obtenha": {
+      "lookup": 1.5
+    },
+    "obter": {
+      "lookup": 1.5
+    },
+    "trae": {
+      "lookup": 1.5
+    },
+    "traer": {
+      "lookup": 1.5
+    },
+    "resumir": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "resuma": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "resúmeme": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "resumeme": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "sintetiza": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "sintetizar": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "clasifica": {
+      "extract": 3
+    },
+    "clasificar": {
+      "extract": 3
+    },
+    "clasifique": {
+      "extract": 3
+    },
+    "classifique": {
+      "extract": 3
+    },
+    "classificar": {
+      "extract": 3
+    },
+    "etiqueta": {
+      "extract": 3
+    },
+    "etiquetar": {
+      "extract": 3
+    },
+    "etiquete": {
+      "extract": 3
+    },
+    "rotule": {
+      "extract": 3
+    },
+    "rotular": {
+      "extract": 3
+    },
+    "extrae": {
+      "extract": 2.5,
+      "edit": 1
+    },
+    "extraer": {
+      "extract": 2.5,
+      "edit": 1
+    },
+    "extraiga": {
+      "extract": 2.5,
+      "edit": 1
+    },
+    "extraia": {
+      "extract": 2.5,
+      "edit": 1
+    },
+    "extrair": {
+      "extract": 2.5,
+      "edit": 1
+    },
+    "categoriza": {
+      "extract": 3
+    },
+    "categorizar": {
+      "extract": 3
+    },
+    "categorice": {
+      "extract": 3
+    },
+    "normaliza": {
+      "extract": 2.5
+    },
+    "normalizar": {
+      "extract": 2.5
+    },
+    "normalice": {
+      "extract": 2.5
+    },
+    "convierte": {
+      "extract": 2,
+      "edit": 1.5
+    },
+    "convertir": {
+      "extract": 2,
+      "edit": 1.5
+    },
+    "convierta": {
+      "extract": 2,
+      "edit": 1.5
+    },
+    "converta": {
+      "extract": 2,
+      "edit": 1.5
+    },
+    "converter": {
+      "extract": 2,
+      "edit": 1.5
+    },
+    "agrupa": {
+      "extract": 2.5
+    },
+    "agrupar": {
+      "extract": 2.5
+    },
+    "agrupe": {
+      "extract": 2.5
+    },
+    "ordena": {
+      "extract": 2.5
+    },
+    "ordenar": {
+      "extract": 2.5
+    },
+    "ordene": {
+      "extract": 2.5
+    },
+    "separa": {
+      "extract": 2.5
+    },
+    "separar": {
+      "extract": 2.5
+    },
+    "separe": {
+      "extract": 2.5
+    },
+    "divide": {
+      "extract": 2.5
+    },
+    "dividir": {
+      "extract": 2.5
+    },
+    "marca": {
+      "extract": 2.5
+    },
+    "marcar": {
+      "extract": 2.5
+    },
+    "marque": {
+      "extract": 2.5
+    },
+    "detecta": {
+      "extract": 2.5
+    },
+    "detectar": {
+      "extract": 2.5
+    },
+    "detecte": {
+      "extract": 2.5
+    },
+    "corrige": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "corregir": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "corrija": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "corrigir": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "arregla": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "arreglar": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "arregle": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "repara": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "reparar": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "soluciona": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "solucionar": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "conserte": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "consertar": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "renombra": {
+      "edit": 3
+    },
+    "renombrar": {
+      "edit": 3
+    },
+    "renombre": {
+      "edit": 3
+    },
+    "renomeie": {
+      "edit": 3
+    },
+    "renomear": {
+      "edit": 3
+    },
+    "actualiza": {
+      "edit": 2.5
+    },
+    "actualizar": {
+      "edit": 2.5
+    },
+    "actualice": {
+      "edit": 2.5
+    },
+    "atualize": {
+      "edit": 2.5
+    },
+    "atualizar": {
+      "edit": 2.5
+    },
+    "agrega": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "agregar": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "agregue": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "añade": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "añadir": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "anade": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "anadir": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "adicione": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "adicionar": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "elimina": {
+      "edit": 2.5
+    },
+    "eliminar": {
+      "edit": 2.5
+    },
+    "elimine": {
+      "edit": 2.5
+    },
+    "borra": {
+      "edit": 2.5
+    },
+    "borrar": {
+      "edit": 2.5
+    },
+    "quita": {
+      "edit": 2.5
+    },
+    "quitar": {
+      "edit": 2.5
+    },
+    "remova": {
+      "edit": 2.5
+    },
+    "remover": {
+      "edit": 2.5
+    },
+    "reemplaza": {
+      "edit": 2.5
+    },
+    "reemplazar": {
+      "edit": 2.5
+    },
+    "reemplace": {
+      "edit": 2.5
+    },
+    "sustituye": {
+      "edit": 2.5
+    },
+    "sustituir": {
+      "edit": 2.5
+    },
+    "substitua": {
+      "edit": 2.5
+    },
+    "substituir": {
+      "edit": 2.5
+    },
+    "cambia": {
+      "edit": 2.5
+    },
+    "cambiar": {
+      "edit": 2.5
+    },
+    "cambie": {
+      "edit": 2.5
+    },
+    "modifica": {
+      "edit": 2.5
+    },
+    "modificar": {
+      "edit": 2.5
+    },
+    "modifique": {
+      "edit": 2.5
+    },
+    "altere": {
+      "edit": 2.5
+    },
+    "alterar": {
+      "edit": 2.5
+    },
+    "mude": {
+      "edit": 2.5
+    },
+    "mudar": {
+      "edit": 2.5
+    },
+    "ajusta": {
+      "edit": 2.5
+    },
+    "ajustar": {
+      "edit": 2.5
+    },
+    "ajuste": {
+      "edit": 2.5
+    },
+    "configura": {
+      "edit": 2
+    },
+    "configurar": {
+      "edit": 2
+    },
+    "habilita": {
+      "edit": 2.5
+    },
+    "habilitar": {
+      "edit": 2.5
+    },
+    "activa": {
+      "edit": 2.5
+    },
+    "activar": {
+      "edit": 2.5
+    },
+    "habilite": {
+      "edit": 2.5
+    },
+    "ative": {
+      "edit": 2.5
+    },
+    "deshabilita": {
+      "edit": 2.5
+    },
+    "deshabilitar": {
+      "edit": 2.5
+    },
+    "desactiva": {
+      "edit": 2.5
+    },
+    "desactivar": {
+      "edit": 2.5
+    },
+    "desabilite": {
+      "edit": 2.5
+    },
+    "desative": {
+      "edit": 2.5
+    },
+    "mueve": {
+      "edit": 2.5
+    },
+    "mover": {
+      "edit": 2.5
+    },
+    "mueva": {
+      "edit": 2.5
+    },
+    "mova": {
+      "edit": 2.5
+    },
+    "redacta": {
+      "write": 3
+    },
+    "redactar": {
+      "write": 3
+    },
+    "redacte": {
+      "write": 3
+    },
+    "redija": {
+      "write": 3
+    },
+    "redigir": {
+      "write": 3
+    },
+    "escribe": {
+      "write": 1.5,
+      "edit": 1.5
+    },
+    "escribir": {
+      "write": 1.5,
+      "edit": 1.5
+    },
+    "escriba": {
+      "write": 1.5,
+      "edit": 1.5
+    },
+    "escreva": {
+      "write": 1.5,
+      "edit": 1.5
+    },
+    "escrever": {
+      "write": 1.5,
+      "edit": 1.5
+    },
+    "traduce": {
+      "write": 3
+    },
+    "traducir": {
+      "write": 3
+    },
+    "traduzca": {
+      "write": 3
+    },
+    "traduza": {
+      "write": 3
+    },
+    "traduzir": {
+      "write": 3
+    },
+    "documenta": {
+      "write": 3
+    },
+    "documentar": {
+      "write": 3
+    },
+    "documente": {
+      "write": 3
+    },
+    "describir": {
+      "write": 2,
+      "lookup": 1
+    },
+    "describa": {
+      "write": 2,
+      "lookup": 1
+    },
+    "descreva": {
+      "write": 2,
+      "lookup": 1
+    },
+    "descrever": {
+      "write": 2,
+      "lookup": 1
+    },
+    "responde": {
+      "write": 2.5
+    },
+    "responder": {
+      "write": 2.5
+    },
+    "responda": {
+      "write": 2.5
+    },
+    "prepara": {
+      "write": 2
+    },
+    "preparar": {
+      "write": 2
+    },
+    "analiza": {
+      "review": 2.5
+    },
+    "analizar": {
+      "review": 2.5
+    },
+    "analice": {
+      "review": 2.5
+    },
+    "analise": {
+      "review": 2.5
+    },
+    "analisar": {
+      "review": 2.5
+    },
+    "investiga": {
+      "review": 2.5
+    },
+    "investigar": {
+      "review": 2.5
+    },
+    "investigue": {
+      "review": 2.5
+    },
+    "compara": {
+      "review": 2.5
+    },
+    "comparar": {
+      "review": 2.5
+    },
+    "evalúa": {
+      "review": 2.5
+    },
+    "evalua": {
+      "review": 2.5
+    },
+    "evaluar": {
+      "review": 2.5
+    },
+    "evalúe": {
+      "review": 2.5
+    },
+    "avalie": {
+      "review": 2.5
+    },
+    "avaliar": {
+      "review": 2.5
+    },
+    "audita": {
+      "review": 2.5
+    },
+    "auditar": {
+      "review": 2.5
+    },
+    "audite": {
+      "review": 2.5
+    },
+    "explica": {
+      "review": 2,
+      "chat": 1
+    },
+    "explicar": {
+      "review": 2,
+      "chat": 1
+    },
+    "explique": {
+      "review": 2,
+      "chat": 1
+    },
+    "explícame": {
+      "review": 2,
+      "chat": 1
+    },
+    "explicame": {
+      "review": 2,
+      "chat": 1
+    },
+    "diagnostica": {
+      "review": 2.5,
+      "build": 1
+    },
+    "diagnosticar": {
+      "review": 2.5,
+      "build": 1
+    },
+    "diagnostique": {
+      "review": 2.5,
+      "build": 1
+    },
+    "recomienda": {
+      "review": 2,
+      "design": 1.5
+    },
+    "recomendar": {
+      "review": 2,
+      "design": 1.5
+    },
+    "recomiende": {
+      "review": 2,
+      "design": 1.5
+    },
+    "recomende": {
+      "review": 2,
+      "design": 1.5
+    },
+    "determina": {
+      "review": 2
+    },
+    "determinar": {
+      "review": 2
+    },
+    "averigua": {
+      "review": 2
+    },
+    "averiguar": {
+      "review": 2
+    },
+    "implementa": {
+      "build": 2.5,
+      "edit": 1.5
+    },
+    "implementar": {
+      "build": 2.5,
+      "edit": 1.5
+    },
+    "implemente": {
+      "build": 2.5,
+      "edit": 1.5
+    },
+    "construye": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "construir": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "construya": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "construa": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "desarrolla": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "desarrollar": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "desarrolle": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "desenvolva": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "desenvolver": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "depura": {
+      "build": 2.5,
+      "review": 1
+    },
+    "depurar": {
+      "build": 2.5,
+      "review": 1
+    },
+    "depure": {
+      "build": 2.5,
+      "review": 1
+    },
+    "optimiza": {
+      "build": 2.5
+    },
+    "optimizar": {
+      "build": 2.5
+    },
+    "optimice": {
+      "build": 2.5
+    },
+    "otimize": {
+      "build": 2.5
+    },
+    "otimizar": {
+      "build": 2.5
+    },
+    "integra": {
+      "build": 2.5
+    },
+    "integrar": {
+      "build": 2.5
+    },
+    "integre": {
+      "build": 2.5
+    },
+    "refactoriza": {
+      "build": 2,
+      "edit": 1.5,
+      "design": 1
+    },
+    "refactorizar": {
+      "build": 2,
+      "edit": 1.5,
+      "design": 1
+    },
+    "refactorice": {
+      "build": 2,
+      "edit": 1.5,
+      "design": 1
+    },
+    "refatore": {
+      "build": 2,
+      "edit": 1.5,
+      "design": 1
+    },
+    "refatorar": {
+      "build": 2,
+      "edit": 1.5,
+      "design": 1
+    },
+    "automatiza": {
+      "build": 2.5
+    },
+    "automatizar": {
+      "build": 2.5
+    },
+    "automatice": {
+      "build": 2.5
+    },
+    "automatize": {
+      "build": 2.5
+    },
+    "crea": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "crear": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "cree": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "crie": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "criar": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "genera": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "generar": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "despliega": {
+      "build": 1.5,
+      "edit": 1
+    },
+    "desplegar": {
+      "build": 1.5,
+      "edit": 1
+    },
+    "implante": {
+      "build": 1.5,
+      "edit": 1
+    },
+    "implantar": {
+      "build": 1.5,
+      "edit": 1
+    },
+    "diseña": {
+      "design": 3
+    },
+    "diseñar": {
+      "design": 3
+    },
+    "disena": {
+      "design": 3
+    },
+    "disenar": {
+      "design": 3
+    },
+    "diseñe": {
+      "design": 3
+    },
+    "projete": {
+      "design": 3
+    },
+    "projetar": {
+      "design": 3
+    },
+    "desenhe": {
+      "design": 3
+    },
+    "desenhar": {
+      "design": 3
+    },
+    "planifica": {
+      "design": 2,
+      "write": 1
+    },
+    "planificar": {
+      "design": 2,
+      "write": 1
+    },
+    "planifique": {
+      "design": 2,
+      "write": 1
+    },
+    "planea": {
+      "design": 2,
+      "write": 1
+    },
+    "planear": {
+      "design": 2,
+      "write": 1
+    },
+    "planee": {
+      "design": 2,
+      "write": 1
+    },
+    "planeje": {
+      "design": 2,
+      "write": 1
+    },
+    "planejar": {
+      "design": 2,
+      "write": 1
+    },
+    "migra": {
+      "design": 2.5,
+      "build": 1.5
+    },
+    "migrar": {
+      "design": 2.5,
+      "build": 1.5
+    },
+    "migre": {
+      "design": 2.5,
+      "build": 1.5
+    },
+    "propón": {
+      "design": 2,
+      "write": 1
+    },
+    "propon": {
+      "design": 2,
+      "write": 1
+    },
+    "proponer": {
+      "design": 2,
+      "write": 1
+    },
+    "proponga": {
+      "design": 2,
+      "write": 1
+    },
+    "proponha": {
+      "design": 2,
+      "write": 1
+    },
+    "propor": {
+      "design": 2,
+      "write": 1
+    },
+    "definir": {
+      "design": 2.5
+    },
+    "defina": {
+      "design": 2.5
+    },
+    "demuestra": {
+      "frontier": 3
+    },
+    "demostrar": {
+      "frontier": 3
+    },
+    "demuestre": {
+      "frontier": 3
+    },
+    "provar": {
+      "frontier": 3
+    },
+    "comprove": {
+      "frontier": 3
+    },
+    "deriva": {
+      "frontier": 3
+    },
+    "derivar": {
+      "frontier": 3
+    },
+    "coordina": {
+      "research": 2.5
+    },
+    "coordinar": {
+      "research": 2.5
+    },
+    "coordine": {
+      "research": 2.5
+    },
+    "orquesta": {
+      "research": 2.5
+    },
+    "orquestar": {
+      "research": 2.5
+    },
+    "orqueste": {
+      "research": 2.5
     }
   },
   "mutating_verbs": [
+    "activa",
+    "activar",
+    "actualice",
+    "actualiza",
+    "actualizar",
     "add",
+    "adicionar",
+    "adicione",
     "adjust",
+    "agrega",
+    "agregar",
+    "agregue",
+    "ajusta",
+    "ajustar",
+    "ajuste",
     "align",
     "allow",
+    "alterar",
+    "altere",
+    "anade",
+    "anadir",
     "annotate",
+    "arregla",
+    "arreglar",
+    "arregle",
+    "ative",
+    "atualizar",
+    "atualize",
     "automate",
+    "automatice",
+    "automatiza",
+    "automatizar",
+    "automatize",
+    "añade",
+    "añadir",
     "backport",
     "block",
     "bootstrap",
+    "borra",
+    "borrar",
     "build",
     "bump",
+    "cambia",
+    "cambiar",
+    "cambie",
     "cap",
     "catch",
     "center",
@@ -1435,23 +2647,54 @@
     "clear",
     "comment",
     "commit",
+    "configura",
+    "configurar",
     "configure",
+    "consertar",
+    "conserte",
     "consolidate",
+    "construa",
     "construct",
+    "construir",
+    "construya",
+    "construye",
     "containerize",
     "correct",
+    "corregir",
+    "corrige",
+    "corrigir",
+    "corrija",
     "cover",
     "debug",
     "decrease",
     "delete",
     "deploy",
     "deprecate",
+    "depura",
+    "depurar",
+    "depure",
+    "desabilite",
+    "desactiva",
+    "desactivar",
+    "desarrolla",
+    "desarrollar",
+    "desarrolle",
+    "desative",
+    "desenvolva",
+    "desenvolver",
+    "deshabilita",
+    "deshabilitar",
+    "desplegar",
+    "despliega",
     "develop",
     "disable",
     "dockerize",
     "downgrade",
     "drop",
     "edit",
+    "elimina",
+    "eliminar",
+    "elimine",
     "emit",
     "enable",
     "escape",
@@ -1461,6 +2704,9 @@
     "fix",
     "flush",
     "guard",
+    "habilita",
+    "habilitar",
+    "habilite",
     "handle",
     "hard-code",
     "hardcode",
@@ -1468,7 +2714,12 @@
     "hide",
     "hoist",
     "hook",
+    "implantar",
+    "implante",
     "implement",
+    "implementa",
+    "implementar",
+    "implemente",
     "increase",
     "indent",
     "initialise",
@@ -1477,7 +2728,10 @@
     "insert",
     "install",
     "instrument",
+    "integra",
+    "integrar",
     "integrate",
+    "integre",
     "launch",
     "limit",
     "lint",
@@ -1485,12 +2739,25 @@
     "localize",
     "lower",
     "merge",
+    "migra",
+    "migrar",
     "migrate",
+    "migre",
     "mock",
+    "modifica",
+    "modificar",
+    "modifique",
     "modify",
+    "mudar",
+    "mude",
     "mute",
+    "optimice",
     "optimise",
+    "optimiza",
+    "optimizar",
     "optimize",
+    "otimizar",
+    "otimize",
     "pad",
     "parallelize",
     "parametrize",
@@ -1501,15 +2768,34 @@
     "port",
     "prototype",
     "push",
+    "quita",
+    "quitar",
     "raise",
     "rearchitect",
     "rebase",
     "reduce",
+    "reemplace",
+    "reemplaza",
+    "reemplazar",
     "refactor",
+    "refactorice",
+    "refactoriza",
+    "refactorizar",
+    "refatorar",
+    "refatore",
     "register",
+    "remova",
     "remove",
+    "remover",
     "rename",
+    "renombra",
+    "renombrar",
+    "renombre",
+    "renomear",
+    "renomeie",
     "reorder",
+    "repara",
+    "reparar",
     "replace",
     "reset",
     "resolve",
@@ -1538,10 +2824,16 @@
     "silence",
     "simplify",
     "skip",
+    "soluciona",
+    "solucionar",
     "stop",
     "strip",
     "stub",
+    "substitua",
+    "substituir",
     "suppress",
+    "sustituir",
+    "sustituye",
     "swap",
     "switch",
     "throw",
@@ -1575,7 +2867,19 @@
         "(?:do not|don't|dont) (?:attempt to |try to )?fix (?:anything|any|them|it|the)",
         "(?:do not|don't|dont) write (?:any )?code",
         "i only need the facts",
-        "not write code yet"
+        "not write code yet",
+        "solo lectura",
+        "s[oó]lo lectura",
+        "no modifi\\w+",
+        "sin modificar",
+        "no cambies",
+        "no hagas cambios",
+        "no edites",
+        "(?:solo|s[oó]lo) (?:reporta|informa)\\w*",
+        "somente leitura",
+        "n[aã]o modifi\\w+",
+        "sem modificar",
+        "n[aã]o (?:altere|mude)\\w*"
       ],
       "adds": {}
     },
@@ -1628,7 +2932,15 @@
         "(?:most (?:frequent|common|recent)|top (?:\\d+|ten|five|three))",
         "who (?:last )?(?:modified|changed|touched|wrote|added)",
         "what port",
-        "which version"
+        "which version",
+        "todos los (?:archivos|usos|lugares|llamados)",
+        "todas las (?:referencias|llamadas|importaciones|ocurrencias)",
+        "(?:los|el|estos) (?:logs?|registros)",
+        "d[oó]nde (?:est[aá]|se)(?: \\w+){0,4}",
+        "(?:qu[eé]|cu[aá]les) archivos",
+        "rutas? de (?:los )?archivos?",
+        "(?:todos os|quais) arquivos",
+        "onde (?:est[aá]|[eé])(?: \\w+){0,4}"
       ],
       "adds": {
         "lookup": 1.5
@@ -1660,7 +2972,15 @@
         "yyyy-mm-dd",
         "iso[- ]?\\d+",
         "into a table of",
-        "one of (?:these|the following) (?:\\w+ )?(?:intents|labels|categories|classes|types)"
+        "one of (?:these|the following) (?:\\w+ )?(?:intents|labels|categories|classes|types)",
+        "(?:en|como|a) (?:formato )?json",
+        "(?:en|como|a) csv",
+        "cada (?:fila|registro|ticket|correo|mensaje|l[ií]nea|transacci[oó]n)",
+        "para cada (?:\\w+ )?(?:fila|registro|ticket|correo|mensaje|item|linha)",
+        "s[ií] o no",
+        "categor[ií]as?",
+        "etiquetas?",
+        "sentimiento"
       ],
       "adds": {
         "extract": 1.5
@@ -1692,7 +3012,14 @@
         "default value",
         "type (?:hint|annotation)s?",
         "helper function",
-        "(?:unit )?tests? for (?:the |this |a |that )(?:\\w+ )?(?:function|method|helper|class|component|module|file|hook|endpoint)"
+        "(?:unit )?tests? for (?:the |this |a |that )(?:\\w+ )?(?:function|method|helper|class|component|module|file|hook|endpoint)",
+        "error tipogr[aá]fico",
+        "una sola l[ií]nea",
+        "(?:peque[ñn]o|simple|menor) (?:cambio|ajuste|arreglo)",
+        "prueba unitaria",
+        "teste unit[aá]rio",
+        "mensaje de error",
+        "variable de entorno"
       ],
       "adds": {
         "edit": 1.5
@@ -1763,7 +3090,17 @@
         "caption",
         "tagline",
         "slogan",
-        "letter"
+        "letter",
+        "correos?",
+        "informe",
+        "resumen ejecutivo",
+        "presentaci[oó]n",
+        "comunicado",
+        "documentaci[oó]n",
+        "notas de (?:la )?versi[oó]n",
+        "carta",
+        "relat[oó]rio",
+        "apresenta[cç][aã]o"
       ],
       "adds": {
         "write": 1.5
@@ -1807,7 +3144,14 @@
         "(?:more|most) (?:robust|reliable|secure|efficient|maintainable)",
         "disagrees? with",
         "(?:does not|doesn't|do not|don't) (?:match|add up|agree)",
-        "before i (?:apply|merge|ship|deploy|send)"
+        "before i (?:apply|merge|ship|deploy|send)",
+        "revisi[oó]n de c[oó]digo",
+        "causa ra[ií]z",
+        "pros y contras",
+        "por qu[eé] (?:falla|fall[oó]|no funciona)",
+        "ventajas y desventajas",
+        "revis[aã]o de c[oó]digo",
+        "causa raiz"
       ],
       "adds": {
         "review": 2.5
@@ -1819,7 +3163,8 @@
       "patterns": [
         "(?:find|finding|look for|spot|hunt for|catch|identify|track down|locate) (?:the |a |an |any |all |some |possible |potential )?(?:\\w+ )?(?:bugs?|issues?|problems?|vulnerabilit\\w+|defects?|mistakes?|risks|gaps|flaws?|leaks?|regressions?)",
         "what(?:'s| is| went| has gone) (?:wrong|broken)",
-        "why (?:it|this|that|the \\w+) (?:is |are )?(?:fail\\w*|break\\w*|crash\\w*|broken|wrong|slow|hang\\w*)"
+        "why (?:it|this|that|the \\w+) (?:is |are )?(?:fail\\w*|break\\w*|crash\\w*|broken|wrong|slow|hang\\w*)",
+        "(?:encuentra|encontrar|busca|buscar|detecta|localiza|encontre|procure) (?:el |la |los |las |un |una |o |os |posibles |poss[ií]veis )?(?:errores?|bugs?|fallos?|fallas?|problemas?|vulnerabilidad(?:es)?|erros?|falhas?)"
       ],
       "adds": {
         "review": 2.5
@@ -1831,7 +3176,9 @@
         "until (?:they|it|everything|the tests?|all (?:the )?tests?|the build|ci) (?:pass|passes|is green|are green|succeeds?)",
         "(?:make|get) (?:the |all )?(?:tests?|build|ci) (?:pass|green)",
         "until green",
-        "re-?run until"
+        "re-?run until",
+        "hasta que (?:las |los )?(?:pruebas|tests) pasen",
+        "hasta que pase\\w*"
       ],
       "adds": {
         "edit": 1.5
@@ -1853,7 +3200,12 @@
         "multi-?file",
         "implement\\w* (?:a |an |the )?(?:\\w+ ){0,2}feature",
         "feature (?:request|work|implementation|build)",
-        "every (?:\\w+ )?(?:endpoint|component|handler|screen|controller) (?:under|in|across)"
+        "every (?:\\w+ )?(?:endpoint|component|handler|screen|controller) (?:under|in|across)",
+        "(?:varios|m[uú]ltiples|muchos) (?:archivos|m[oó]dulos|componentes|servicios)",
+        "de extremo a extremo",
+        "nueva funcionalidad",
+        "(?:v[aá]rios|m[uú]ltiplos) arquivos",
+        "nova funcionalidade"
       ],
       "adds": {
         "build": 1.5
@@ -1949,7 +3301,16 @@
         "double[- ]charg\\w+",
         "duplicate (?:charges?|writes?|events?|messages?)",
         "times? out and (?:we )?retr\\w+",
-        "idempoten\\w+"
+        "idempoten\\w+",
+        "condici[oó]n(?:es)? de carrera",
+        "fugas? de memoria",
+        "intermitente\\w*",
+        "no (?:se puede|logramos|puedo) reproducir",
+        "bajo carga",
+        "interbloqueos?",
+        "a veces falla",
+        "vazamento de mem[oó]ria",
+        "condi[cç][aã]o de corrida"
       ],
       "adds": {
         "build": 2.0
@@ -1972,7 +3333,12 @@
         "regress(?:ed|ion|ions|es)?",
         "(?:startup|start-up|load|response|build|query|render|boot) times?",
         "slow(?:er|ed)?(?: down)?",
-        "from \\d+(?:\\.\\d+)? ?m?s(?:ec)? to \\d+(?:\\.\\d+)? ?m?s(?:ec)?"
+        "from \\d+(?:\\.\\d+)? ?m?s(?:ec)? to \\d+(?:\\.\\d+)? ?m?s(?:ec)?",
+        "rendimiento",
+        "lent[oa]s?",
+        "cuello de botella",
+        "desempenho",
+        "gargalo"
       ],
       "adds": {
         "build": 1.5
@@ -2002,7 +3368,10 @@
         "click(?:ing)? through",
         "(?:by|via) (?:clicking|navigating)",
         "in (?:the|a) browser",
-        "(?:log|sign)(?:ging)? in(?:to)? (?:the |our )?(?:\\w+ )?(?:site|portal|dashboard|admin panel|console)"
+        "(?:log|sign)(?:ging)? in(?:to)? (?:the |our )?(?:\\w+ )?(?:site|portal|dashboard|admin panel|console)",
+        "en el navegador",
+        "no navegador",
+        "haz clic"
       ],
       "adds": {
         "build": 2.0
@@ -2021,7 +3390,10 @@
         "wireframes?",
         "handwrit\\w+",
         "scanned \\w+",
-        "(?:invoice|receipt|document|product|attached|uploaded|these|this|the|each) (?:images?|photos?|pictures?|scans?)"
+        "(?:invoice|receipt|document|product|attached|uploaded|these|this|the|each) (?:images?|photos?|pictures?|scans?)",
+        "captura(?:s)? de pantalla",
+        "(?:la|las|esta|estas) im[aá]gen(?:es)?",
+        "captura de tela"
       ],
       "adds": {
         "build": 0.5
@@ -2052,7 +3424,14 @@
         "disaster recovery",
         "capacity planning",
         "build vs\\.? buy",
-        "tech(?:nology)? stack"
+        "tech(?:nology)? stack",
+        "arquitectura",
+        "dise[ñn]o del? sistema",
+        "modelo de datos",
+        "microservicios",
+        "monolito",
+        "escalab\\w+",
+        "arquitetura"
       ],
       "adds": {
         "design": 1.5
@@ -2078,7 +3457,14 @@
         "every (?:service|repo|package|microservice|team|app) (?:that|which|in|across)",
         "over the next (?:two|three|few|\\d+) (?:quarters|months|years)",
         "target architecture",
-        "from \\d+[mbk]? to \\d+[mbk]? (?:rows|users|requests|tenants)"
+        "from \\d+[mbk]? to \\d+[mbk]? (?:rows|users|requests|tenants)",
+        "plan de migraci[oó]n",
+        "migraci[oó]n (?:de|del|a|hacia)",
+        "migra\\w* (?:de|del|desde|a|hacia|o|a nossa)",
+        "tod[oa] (?:la base de c[oó]digo|el c[oó]digo|el repositorio|el sistema)",
+        "todos los (?:servicios|microservicios|repositorios)",
+        "plano de migra[cç][aã]o",
+        "todo o (?:c[oó]digo|sistema)"
       ],
       "adds": {
         "design": 2.0
@@ -2101,7 +3487,11 @@
         "across (?:many|multiple|several|a range of) sources",
         "(?:detailed|long|full|thorough) report with (?:references|citations|sources)",
         "with (?:references|citations|footnotes)",
-        "multi-?source"
+        "multi-?source",
+        "investigaci[oó]n (?:profunda|exhaustiva|a fondo|detallada)",
+        "informe (?:exhaustivo|detallado) con (?:fuentes|referencias|citas)",
+        "con (?:fuentes|referencias|citas)",
+        "pesquisa (?:aprofundada|detalhada)"
       ],
       "adds": {
         "research": 2.5
@@ -2130,7 +3520,12 @@
         "rigorous(?:ly)? (?:establish|show|prove|demonstrate|argue)\\w*",
         "(?:establish|show|demonstrate) rigorously",
         "(?:a |with a )?proof or (?:a )?counter-?example",
-        "counter-?examples?"
+        "counter-?examples?",
+        "demostraci[oó]n",
+        "teorema",
+        "contraejemplo",
+        "desde primeros principios",
+        "demonstra[cç][aã]o"
       ],
       "adds": {
         "frontier": 3.0
@@ -2178,7 +3573,13 @@
         "long[- ]horizon",
         "unattended",
         "until (?:it's|it is|everything is|all (?:of )?it is) (?:done|finished|complete|green)",
-        "while i(?:'m| am) (?:away|asleep|out)"
+        "while i(?:'m| am) (?:away|asleep|out)",
+        "sin supervisi[oó]n",
+        "de forma aut[oó]noma",
+        "aut[oó]nomamente",
+        "durante (?:varias |muchas )?horas",
+        "toda la noche",
+        "sem supervis[aã]o"
       ],
       "adds": {
         "build": 1.0
@@ -2188,7 +3589,9 @@
       "name": "conversational question",
       "patterns": [
         "^(?:what|who|when|where|which|why|how|is|are|does|do|did|can|could|should|would|will)\\b[^\\n]{0,160}\\?\\s*$",
-        "^(?:hi|hello|hey|thanks|thank you|good (?:morning|afternoon|evening|night)|cheers|bye)\\b"
+        "^(?:hi|hello|hey|thanks|thank you|good (?:morning|afternoon|evening|night)|cheers|bye)\\b",
+        "^¿?(?:qu[eé]|qui[eé]n|cu[aá]ndo|d[oó]nde|cu[aá]l|por qu[eé]|c[oó]mo|quando|onde|qual|quem|como)\\b[^\\n]{0,160}\\?\\s*$",
+        "^(?:hola|gracias|buenos d[ií]as|buenas (?:tardes|noches)|ol[aá]|obrigad[oa])\\b"
       ],
       "adds": {
         "chat": 2.5
@@ -2221,7 +3624,11 @@
         "\\w+\\.(?:py|js|jsx|ts|tsx|go|rs|java|rb|php|c|cc|cpp|h|cs|kt|swift|sql|sh|yaml|yml|toml|json|md|html|css|vue|scala)",
         "src/",
         "defined",
-        "(?:this|the|our) branch"
+        "(?:this|the|our) branch",
+        "c[oó]digo fuente",
+        "repositorio",
+        "base de c[oó]digo",
+        "reposit[oó]rio"
       ],
       "adds": {},
       "flag": "code_context",
@@ -2270,7 +3677,19 @@
         "rollback",
         "incident",
         "outage",
-        "safety[- ]critical"
+        "safety[- ]critical",
+        "producci[oó]n",
+        "pagos?",
+        "facturaci[oó]n",
+        "seguridad",
+        "autenticaci[oó]n",
+        "credenciales?",
+        "datos de (?:clientes|usuarios)",
+        "dinero",
+        "cumplimiento",
+        "produ[cç][aã]o",
+        "pagamentos?",
+        "seguran[cç]a"
       ],
       "adds": {}
     },
@@ -2296,7 +3715,11 @@
         "exact match",
         "acceptance criteria",
         "checkable",
-        "pass/fail"
+        "pass/fail",
+        "hasta que (?:las |los )?(?:pruebas|tests) pasen",
+        "(?:ejecuta|corre) (?:las |los )?(?:pruebas|tests)",
+        "que pasen (?:las |los )?(?:pruebas|tests)",
+        "at[eé] (?:os )?testes passarem"
       ],
       "adds": {}
     },
@@ -2315,7 +3738,12 @@
         "at scale",
         "each of the \\d+",
         "per (?:day|hour|minute|second)",
-        "every (?:incoming|new) \\w+"
+        "every (?:incoming|new) \\w+",
+        "miles de",
+        "cientos de",
+        "por lotes",
+        "en lote",
+        "milhares de"
       ],
       "adds": {
         "extract": 0.5
@@ -2337,7 +3765,10 @@
         "typing indicator",
         "chat ?bot",
         "instant(?:ly)? (?:answer|reply|response|feedback|result)s?",
-        "respond instantly"
+        "respond instantly",
+        "tiempo real",
+        "en vivo",
+        "tempo real"
       ],
       "adds": {}
     },
@@ -2359,7 +3790,14 @@
         "leave no stone",
         "be (?:extra |very )?(?:careful|precise|thorough)",
         "high[- ]confidence",
-        "mission[- ]critical"
+        "mission[- ]critical",
+        "con (?:mucho )?cuidado",
+        "cuidadosamente",
+        "minucios\\w+",
+        "exhaustiv\\w+",
+        "a fondo",
+        "con cuidado",
+        "com cuidado"
       ],
       "adds": {}
     },
@@ -2381,7 +3819,11 @@
         "tl;?dr",
         "one[- ]liner",
         "short answer",
-        "in a sentence"
+        "in a sentence",
+        "r[aá]pid[oa](?:mente)?",
+        "breve(?:mente)?",
+        "a grandes rasgos",
+        "rapidamente"
       ],
       "adds": {}
     },
@@ -2422,7 +3864,10 @@
         "weird(?:ly)?",
         "strange(?:ly)?",
         "(?:the |this )?(?:brief|task|request|ticket) is (?:unclear|vague|ambiguous|underspecified)",
-        "whatever (?:is|seems) (?:broken|wrong)"
+        "whatever (?:is|seems) (?:broken|wrong)",
+        "no s[eé] (?:qu[eé]|por qu[eé]|c[oó]mo)",
+        "algo (?:anda|est[aá]) (?:mal|raro)",
+        "averigua qu[eé] pasa"
       ],
       "adds": {}
     }

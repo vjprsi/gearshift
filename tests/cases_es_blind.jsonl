@@ -1,0 +1,20 @@
+{"task": "Dime qué servicios dependen de la librería de autenticación interna.", "tier": "haiku"}
+{"task": "Cuenta cuántos endpoints no tienen pruebas y lista sus rutas.", "tier": "haiku"}
+{"task": "Separa cada dirección en calle, ciudad y código postal y entrégalo en CSV.", "tier": "haiku"}
+{"task": "Marca cada transacción como sospechosa o normal según las reglas de abajo.", "tier": "haiku"}
+{"task": "Cambia el timeout del cliente HTTP de 10 a 30 segundos en config.py.", "tier": "sonnet"}
+{"task": "Quita los imports que no se usan en api/views.py.", "tier": "sonnet"}
+{"task": "Escribe un script en Python que lea un CSV y muestre las filas con monto negativo.", "tier": "sonnet"}
+{"task": "Prepara un resumen ejecutivo de una página con estas notas de la reunión.", "tier": "sonnet"}
+{"task": "Responde a este reclamo del cliente: discúlpate y ofrece un crédito del 10%.", "tier": "sonnet"}
+{"task": "Evalúa si la cobertura de pruebas del módulo de checkout es suficiente.", "tier": "sonnet"}
+{"task": "Explícame por qué falla el despliegue según este log.", "tier": "sonnet"}
+{"task": "Los pagos se cobran dos veces de forma intermitente cuando el proveedor tarda. No logramos reproducirlo. Arréglalo.", "tier": "opus"}
+{"task": "Desarrolla la exportación a CSV de reportes: endpoint en el backend, botón de descarga y paginación.", "tier": "opus"}
+{"task": "Propón cómo dividir el monolito de órdenes en microservicios, con fases y riesgos.", "tier": "opus"}
+{"task": "Define el modelo de datos y los límites de servicio para una billetera multi-tenant.", "tier": "opus"}
+{"task": "Optimiza el endpoint de búsqueda, está muy lento con cuentas grandes.", "tier": "opus"}
+{"task": "Necesito que revises el contrato adjunto y señales las cláusulas riesgosas.", "tier": "sonnet"}
+{"task": "Gracias, quedó perfecto.", "tier": "sonnet"}
+{"task": "Liste os testes que falham e mostre a primeira linha de erro de cada um.", "tier": "haiku"}
+{"task": "Implemente login com Google de ponta a ponta, frontend e backend.", "tier": "opus"}

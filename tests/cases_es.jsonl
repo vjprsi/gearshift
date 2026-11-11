@@ -1,0 +1,30 @@
+{"task": "Busca todos los archivos que importan el módulo de pagos y dame la lista de rutas. No modifiques nada.", "tier": "haiku", "class": "lookup"}
+{"task": "Encuentra dónde se define la política de reintentos del webhook.", "tier": "haiku", "platform": "claude-code", "agent_type": "Explore"}
+{"task": "Ejecuta las pruebas y dime cuáles fallan, solo reporta.", "tier": "haiku"}
+{"task": "Lee los logs del último despliegue y resume los errores más frecuentes.", "tier": "haiku"}
+{"task": "Clasifica estos 4,000 tickets de soporte por área de producto y devuélvelos como JSON.", "tier": "haiku", "class": "extract", "effort": "low"}
+{"task": "Extrae el número de factura y la fecha de cada correo, en formato CSV.", "tier": "haiku", "class": "extract"}
+{"task": "Etiqueta cada mensaje como positivo, negativo o neutro.", "tier": "haiku"}
+{"task": "Corrige el error tipográfico en el mensaje de error de src/errors.ts.", "tier": "sonnet", "class": "edit", "effort": "medium"}
+{"task": "Renombra la función getUsr a getUser en user_service.py y actualiza sus llamadas.", "tier": "sonnet", "class": "edit"}
+{"task": "Agrega una prueba unitaria para la función slugify.", "tier": "sonnet"}
+{"task": "Ejecuta las pruebas y corrige lo que falle.", "tier": "sonnet"}
+{"task": "Corrige el redondeo del total de la factura en el servicio de facturación de producción. Con cuidado.", "tier": "sonnet", "effort": "high"}
+{"task": "Redacta un correo para el equipo anunciando la nueva rotación de guardias.", "tier": "sonnet", "class": "write"}
+{"task": "Traduce esta guía de incorporación al inglés manteniendo el formato.", "tier": "sonnet", "class": "write"}
+{"task": "Revisa este diff y dime qué problemas de seguridad tiene.", "tier": "sonnet"}
+{"task": "Investiga por qué el reporte nocturno muestra menos órdenes que el panel.", "tier": "sonnet", "class": "review", "effort": "high"}
+{"task": "Encuentra los errores en el flujo de órdenes.", "tier": "sonnet", "class": "review"}
+{"task": "Compara Redis y Memcached para nuestro almacén de sesiones, con pros y contras.", "tier": "sonnet", "class": "review"}
+{"task": "Implementa notificaciones: tabla en la base de datos, endpoints de API, un componente React y pruebas.", "tier": "opus", "class": "build"}
+{"task": "Depura la condición de carrera en el pool de conexiones que solo ocurre bajo carga.", "tier": "opus", "class": "build"}
+{"task": "A veces falla el job nocturno con un interbloqueo en Postgres. Encuentra la causa y corrígelo.", "tier": "opus"}
+{"task": "Diseña la arquitectura de un servicio de scoring de fraude en tiempo real.", "tier": "opus", "class": "design"}
+{"task": "Planifica la migración de MySQL a Postgres sin tiempo de inactividad.", "tier": "opus", "class": "design", "effort": "high"}
+{"task": "Haz una investigación profunda sobre la regulación de pagos inmediatos en América Latina y escribe un informe con fuentes.", "tier": "opus", "class": "research"}
+{"task": "Demuestra que el algoritmo termina y deriva su complejidad en el peor caso.", "tier": "fable", "class": "frontier"}
+{"task": "¿Cuál es la diferencia entre un mutex y un semáforo?", "tier": "sonnet", "class": "chat"}
+{"task": "Hazlo.", "tier": "opus", "class": "unsure"}
+{"task": "Encontre todos os arquivos que importam o módulo de pagamentos e liste os caminhos. Não modifique nada.", "tier": "haiku"}
+{"task": "Corrija o erro de arredondamento na função calcular_total e adicione um teste unitário.", "tier": "sonnet"}
+{"task": "Projete a arquitetura de um serviço de pagamentos instantâneos multi-tenant.", "tier": "opus"}
