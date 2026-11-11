@@ -2,6 +2,21 @@
 
 A mixed-model setup is only worth keeping if it beats every single-model run on your own workload, on cost per finished task. `gearshift bench` runs that comparison so you don't have to take my table on faith.
 
+## The built-in pack
+
+```bash
+gearshift bench pack --simulate                      # see the output without spending anything
+gearshift bench pack --configs "haiku@medium,sonnet@medium,opus@medium,fable@high,router,cascade" --out results.md
+```
+
+31 tasks with automatic checks: 8 extraction and formatting tasks, 8 small Python functions, 7 harder ones (an LRU cache, an expression parser, a token bucket, splitting money without losing a cent), and 8 reasoning questions with one exact answer. Every code task has a reference solution in `tests/test_bench_pack.py` that must pass its own checks, and every numeric answer is recomputed there.
+
+What it is good for: a first look at cost per finished task across the tiers, and checking that a new model generation hasn't moved the table. What it is not: your workload. These are single calls with checkable answers, not agent runs in a real repository. If every config passes everything, the pack is telling you about cost only, and on tasks this size that is still the routing question.
+
+The code tasks run the model's answer on your machine (in a temp folder, `python -I`, with a timeout). It is model-written code, so don't run the pack somewhere you wouldn't run a stranger's script.
+
+`--out results.md` writes the table with the date, the task count and the exact model IDs, so the result can be committed and compared after the next model release.
+
 ## Task file
 
 JSONL, one task per line:
@@ -18,6 +33,7 @@ JSONL, one task per line:
 | `equals` | The trimmed output equals the value. |
 | `regex` | The pattern matches (multiline, dot matches newline). |
 | `json_equals` | The first JSON object or array in the output equals the value. |
+| `python` | The code block in the answer, with the asserts from `"tests"` appended, exits 0. |
 | `command` | The shell command, given the output on stdin, exits 0. Its stderr becomes the feedback for the next attempt. |
 
 `command` runs on your machine with your permissions. Only use task files you wrote or have read.

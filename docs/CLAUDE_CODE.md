@@ -61,6 +61,29 @@ The headless child session runs with `GEARSHIFT_INSIDE_JUDGE=1`, and every gears
 
 Start it in shadow mode like everything else: `GEARSHIFT_MODE=shadow GEARSHIFT_JUDGE=claude`, then look at `/gearshift:report`.
 
+## Outcomes: what happens after the route
+
+Three hooks work together here.
+
+**PreToolUse.** When the hook fills in a cheaper model, it appends this to the subagent prompt (setting `hint`):
+
+> If this task turns out to need a stronger model than you (you are guessing, or you tried and could not get it right), stop and reply with a first line that starts with ESCALATE: followed by one sentence on why. Do not hand back work you are not confident in.
+
+Calls the hook does not change are not touched. The pinned gearshift agents already carry the same rule in their definitions.
+
+**PostToolUse.** If the answer has a line starting with `ESCALATE:`, the ledger records it with the reason, and Claude gets one line of context: which model the subagent ran on, why it stopped, and the next rung to re-run on. If the next rung is above your ceiling it says to take the task in the main session instead. An Agent call that comes back with an error status is recorded as failed. In shadow mode both are logged and nothing is said.
+
+**PreToolUse again.** Each Agent call is fingerprinted (hashes of its distinct words, kept in the session state file, never the text). If a new call matches an earlier one in the same session that escalated or failed, the hook starts it one rung above where it fell short, even if the keyword rules would have been unsure. A repeat of a task that went fine is routed as usual. An explicit `model` on the call still wins.
+
+Then, after a week or two of real use:
+
+```bash
+gearshift tune            # last 30 days
+gearshift tune --all --min-runs 10 --raise-at 0.2
+```
+
+It groups finished runs by task class and the tier they ran on, and proposes a raise only when a class has enough runs on its home tier and too many fell short. The output ends with the JSON to merge into `~/.config/gearshift/policy.json`. Nothing is applied for you.
+
 ## Modes
 
 | Mode | Behaviour |
@@ -85,6 +108,7 @@ If you want to see its judgment before trusting it, run `shadow` for a day. That
 | `explore` | `route` `leave` | `route` | Whether to route the built-in Explore agent. |
 | `permission` | `allow` `ask` `none` | `allow` | Decision sent with a rewritten call. |
 | `judge` | `auto` `off` `api` `claude` | `auto` | Second opinion from Haiku when the keyword rules aren't confident. `auto` is `api` when `GEARSHIFT_API_KEY` or `ANTHROPIC_API_KEY` is set, otherwise off. Cannot be set from a project file. |
+| `hint` | `true` `false` | `true` | When the hook routes a call to a cheaper model, append one line telling the subagent to answer `ESCALATE:` if the task is beyond it. A project file can switch it off. |
 
 Where to set them, later wins:
 

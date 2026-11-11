@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 (2026-11-10)
+
+The router now looks at what happened after the route.
+
+- Outcome tracking: the PostToolUse hook records when a subagent answers `ESCALATE:` or the call errors, and tells Claude which rung to re-run on.
+- Retry-aware routing: the same task sent again after falling short starts one rung above where it failed. Tasks are matched by hashed words kept in the session state, not by storing prompts.
+- Escalate hint: calls the hook routes to a cheaper model get one line telling the subagent how to say the task is beyond it. Setting `hint`, on by default.
+- `gearshift tune`: per task class and tier, how many runs fell short, and a policy override when a class keeps falling short on its home tier. Proposes raises only. Applies nothing.
+- `gearshift report` shows outcome counts.
+- `gearshift bench pack`: 31 built-in tasks with automatic checks, a new `python` check type, and `--out` to write a results file.
+
+Not done: the pack has not been run against real models, so there are no published results yet. `tune` has only seen test data.
+
 ## 1.1.0 (2026-11-10)
 
 The hybrid router. Thanks to Orlando Murcia Perdomo, who told me keywords alone wouldn't survive a second language.

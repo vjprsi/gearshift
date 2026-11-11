@@ -244,11 +244,32 @@ No API key at all? `GEARSHIFT_JUDGE=claude` asks through headless Claude Code in
 
 What I have NOT measured: how often the judge is right on real traffic. Without it, those 25 multilingual tasks score 32% (almost everything falls to `unsure`, so Opus). With a judge that answers correctly they score 100%, but that only proves the wiring. The real number is whatever `gearshift eval --judge api` prints on your machine, and I'd like to see it.
 
+## It watches what happens next (new in 1.2)
+
+A router that only decides before the work starts is guessing. 1.2 looks at what came back.
+
+- **A way out for the cheap model.** When the hook moves a call down to a cheaper model, it adds one line to the prompt: if this is beyond you, answer `ESCALATE:` and say why. Without that, a small model has no way to say "too hard" and hands back something confident and wrong.
+- **Escalations are acted on.** When a subagent answers `ESCALATE:`, the hook records it and tells Claude which rung to re-run on (`haiku@medium` asked for help, so `haiku@high`, then `sonnet@medium`, and so on up the ladder).
+- **The same task twice starts higher.** If a task fell short and Claude sends it again in the same session, the hook doesn't classify it from scratch. It starts one rung above where it failed. The state file keeps hashes of the words, not your prompt.
+- **`gearshift tune`.** Reads your own ledger and shows, per task class, how often runs fell short. If a class has 20+ runs on its home tier and 15% or more fell short, it prints the policy change to raise it. It never applies anything, and it never proposes going down.
+
+```
+$ gearshift tune
+class     ran on   runs  fell short   verdict
+edit      sonnet     30    7 ( 23%)   raise edit to sonnet@high
+lookup    haiku      40    1 (  2%)   keep
+review    sonnet      8    4 ( 50%)   not enough runs (8 of 20)
+```
+
+That's example output from the test data, not from real use. "Fell short" means the subagent asked to escalate, the call errored, or the task was re-sent on a bigger model. It does not mean finished work was correct. Nothing local can tell you that, which is why going down a tier is a `bench` question and not a `tune` one.
+
+There's also a built-in benchmark now: `gearshift bench pack` runs 31 tasks with automatic checks (8 extraction, 8 small functions, 7 harder ones, 8 exact-answer reasoning) across the configs you name, and `--out results.md` writes a file you can commit. Every check in the pack is tested against a reference solution. I have not run it against the real models yet, so there are no results to show. That's the next thing.
+
 ## Status
 
-This is 1.1, so here's exactly where it stands:
+This is 1.2, so here's exactly where it stands:
 
-- 147 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- 171 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.
 - The Anthropic SDK adapter is tested with a fake client and checked against the real SDK signature (anthropic 2.8.0). The judge is tested with a fake model, a local fake of the Messages API and a fake `claude` binary. I haven't run it against the real API or measured its accuracy yet, and the headless `claude` transport is the least proven part of this repo.
@@ -277,6 +298,7 @@ Raj's skill is clear and well judged, go read it. What's different here:
 | `announce` | one line per routed subagent | `true` |
 | `advise` | session-model and switch notes | `true` |
 | `judge` | `auto`, `off`, `api`, `claude` (Haiku second opinion when the keywords are unsure) | `auto` |
+| `hint` | add the `ESCALATE:` line to prompts the hook routes down | `true` |
 | `brief` | routing brief in context at session start | `true` |
 | `explore` | `route` or `leave` the built-in Explore agent | `route` |
 
@@ -288,7 +310,8 @@ Changing the table itself: [docs/POLICY.md](docs/POLICY.md).
 
 - The keyword layer knows English, Spanish and Portuguese. Everything else needs the judge, and without it comes out `unsure` (Opus on the API, untouched in the hook).
 - The judge sends the first 1,500 characters of the subagent prompt to the Anthropic API. Same vendor your session already talks to, but it's one more call, so it's off unless a key is set or you opt in.
-- It only sees the task text. It can't know "fix the flaky test" already failed twice. The ladder and the `ESCALATE:` convention deal with that, not the first route.
+- The first route only sees the task text. From the second attempt on, the hook knows the task fell short and starts higher, but only within one session and only if the subagent said `ESCALATE:` or the call errored.
+- `tune` counts what it can see. A subagent that finishes confidently and wrongly looks like a success in the ledger.
 - Prices are list prices from Anthropic's pricing page as of 2026-11-10. No fast mode, no US-only multiplier, no negotiated rates. Update `src/gearshift/data/models.json` when a new generation ships.
 - On a subscription the dollar figures are relative weight, not your bill.
 - Tier aliases resolve differently per provider (on Bedrock / Vertex / Foundry `haiku` and `sonnet` can be older models). The ledger prices by the model ID that actually ran.

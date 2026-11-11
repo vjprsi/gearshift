@@ -13,3 +13,7 @@ sh "${CLAUDE_PLUGIN_ROOT}/bin/gearshift" report
 Show the output as-is in a code block. Do not turn the "same tokens at session model rates"
 line into a savings claim: it reprices the same token counts and is a comparison aid, not a
 measurement. If the report is empty, say that the ledger fills in as subagents run.
+
+If the user asks whether the routing is working or which task types keep failing, also run
+`sh "${CLAUDE_PLUGIN_ROOT}/bin/gearshift" tune` and show that output the same way. It proposes
+policy changes; do not apply them unless the user asks.

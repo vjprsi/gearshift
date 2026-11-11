@@ -352,6 +352,10 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         event["attempt"] = int(prior.get("attempt") or 1) + 1
     event.update(rec)
     ran_tier = rec["model"] if rec["model"] in TIERS else (tier_of(str(rec["model"])) if rec["model"] else facts["tier"])
+    # subagents are often launched in parallel, so several of these hooks run
+    # at once. re-read right before writing to keep the window small.
+    st = load_session(sid)
+    tasks = st.get("tasks") if isinstance(st.get("tasks"), list) else []
     tasks.append({"id": inp.get("tool_use_id"), "fp": fp, "desc": desc[:80], "tier": ran_tier,
                   "effort": rec["effort"] or rec.get("want_effort"), "class": rec["class"],
                   "attempt": event.get("attempt", 1), "short": False})

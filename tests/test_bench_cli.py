@@ -98,7 +98,7 @@ class Cli(unittest.TestCase):
         self.assertEqual(cli("doctor").returncode, 0)
         self.assertIn("SIMULATED RUN", cli("bench", TASKS, "--simulate").stdout)
         self.assertIn("tier accuracy", cli("eval", os.path.join(ROOT, "tests", "cases_dev.jsonl")).stdout)
-        self.assertIn("gearshift 1.1.0", cli("--version").stdout)
+        self.assertIn("gearshift 1.2.0", cli("--version").stdout)
 
 
 if __name__ == "__main__":
