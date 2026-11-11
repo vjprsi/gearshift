@@ -27,6 +27,11 @@ from . import ledger
 from .policy import EFFORTS, Policy, default_policy, tier_rank
 
 ESCALATE_RE = re.compile(r"^\s*(?:\*\*)?ESCALATE(?:\*\*)?\s*:\s*(.*)$", re.MULTILINE)
+# "ESCALATE: none". Seen live: the scout is told to end with an ESCALATE: line when a task is
+# beyond it, and twice it ended a clean test run with "ESCALATE: none". That was logged as an
+# escalation and the next test run was sent one step up for nothing.
+_NOTHING_RE = re.compile(r"^[\s*_`(\[]*(?:none|nothing|no|n/?a|not\s+(?:needed|required|applicable)|"
+                         r"none\s+(?:needed|required))[\s*_`.)\]!-]*$", re.IGNORECASE)
 
 HINT = ("If this task turns out to need a stronger model than you (you are guessing, or you tried "
         "and could not get it right), stop and reply with a first line that starts with ESCALATE: "
@@ -77,9 +82,10 @@ def escalation_in(resp: Any, budget: int = 200000) -> Optional[str]:
         x = stack.pop()
         if isinstance(x, str):
             seen += len(x)
-            m = ESCALATE_RE.search(x)
-            if m:
-                return m.group(1).strip()[:160] or "no reason given"
+            for m in ESCALATE_RE.finditer(x):
+                reason = m.group(1).strip()
+                if not _NOTHING_RE.match(reason):
+                    return reason[:160] or "no reason given"
         elif isinstance(x, dict):
             stack.extend(x.values())
         elif isinstance(x, (list, tuple)):

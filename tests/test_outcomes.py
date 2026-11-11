@@ -25,6 +25,17 @@ class Signals(unittest.TestCase):
             self.assertIsNone(escalation_in({"content": [{"type": "text", "text": text}]}), text)
         self.assertIsNone(escalation_in({"status": "completed", "n": 3, "x": None}))
 
+    def test_escalate_none_is_not_an_escalation(self):
+        # the first two are word for word what gearshift:scout wrote at the end of a clean test run
+        for text in ("All 103 tests passed.\n\nESCALATE: none.", "142 tests, OK.\nESCALATE: none", "ESCALATE: N/A",
+                     "ESCALATE: nothing", "**ESCALATE**: not needed.", "ESCALATE: (none)"):
+            self.assertIsNone(escalation_in({"content": [{"type": "text", "text": text}]}), text)
+        # a real one after an empty one still counts, and so does a reason that only starts with "none"
+        self.assertEqual(escalation_in("ESCALATE: none\nlater\nESCALATE: the fix needs a schema change"),
+                         "the fix needs a schema change")
+        self.assertIsNotNone(escalation_in("ESCALATE: none of the three fixes hold, this needs a redesign"))
+        self.assertEqual(escalation_in("notes\n  ESCALATE:"), "no reason given")
+
     def test_same_task_detection(self):
         a = "Find all API endpoints defined in this repo and list the handler files."
         fa = fingerprint(a)
