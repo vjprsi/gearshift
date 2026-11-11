@@ -296,10 +296,10 @@ gearshift statusline --install     # prints the snippet for ~/.claude/settings.j
 ```
 
 ```
-gearshift fill | 3 routed: haiku 2, sonnet 1 | subagents $0.015 (session rates $0.31) | 1 escalated
+gearshift fill | 11 subagents: haiku 8, sonnet 3 | $0.311 vs $0.88 at session rates | 1 escalated
 ```
 
-What was routed where in this session, what the subagents cost, what the same tokens would have cost at your session model's rates, and how many asked to escalate. It reads the tail of the ledger and never raises.
+Where this session's subagents ran (whether the hook set the model or Claude picked a pinned agent itself), what they cost, what the same tokens would have cost at your session model's rates, and how many asked to escalate. It reads the tail of the ledger and never raises.
 
 ## Status
 

@@ -1,6 +1,6 @@
 """One line for Claude Code's status bar: what gearshift did in this session.
 
-    gearshift fill | 7 routed: haiku 4, sonnet 2, opus 1 | subagents $0.21 (session rates $1.94) | 1 escalated
+    gearshift fill | 7 subagents: haiku 4, sonnet 2, opus 1 | $0.21 vs $1.94 at session rates | 1 escalated
 
 Claude Code runs the status line command often and passes session JSON on
 stdin, so this reads only the tail of the ledger and never raises. Every
@@ -15,6 +15,7 @@ from typing import Any, Dict, Mapping, Optional
 
 from . import ledger
 from .config import load_config, state_dir
+from .pricing import tier_of
 
 _ORDER = ("haiku", "sonnet", "opus", "fable")
 _ROUTED = ("filled", "overrode", "effort-only")
@@ -60,6 +61,13 @@ def session_summary(session_id: Optional[str]) -> Dict[str, Any]:
         else:
             out["at_session_rates"] += float(u["session_rate_cost_usd"])
     out["measured"] = len(usage)
+    # where the subagents really ran, whoever chose: the hook, or Claude picking a pinned agent
+    ran: Dict[str, int] = {}
+    for u in usage.values():
+        tier = tier_of(str(u.get("main_model") or "")) if u.get("main_model") else None
+        if tier:
+            ran[tier] = ran.get(tier, 0) + 1
+    out["ran"] = ran
     return out
 
 
@@ -69,19 +77,21 @@ def render(inp: Mapping[str, Any]) -> str:
     parts = ["gearshift %s" % cfg["mode"]]
     if cfg["mode"] == "off":
         return parts[0]
-    if s["routed"]:
-        tiers = ", ".join("%s %d" % (t, s["tiers"][t]) for t in _ORDER if s["tiers"].get(t))
-        parts.append("%d routed: %s" % (s["routed"], tiers) if tiers else "%d routed" % s["routed"])
-    elif s["shadow"]:
-        parts.append("%d would be routed" % s["shadow"])
-    elif s["calls"]:
-        parts.append("%d subagent calls, none changed" % s["calls"])
+    ran = s.get("ran") or s["tiers"]
+    if s["calls"]:
+        tiers = ", ".join("%s %d" % (t, ran[t]) for t in _ORDER if ran.get(t))
+        head = "%d subagent%s" % (s["calls"], "" if s["calls"] == 1 else "s")
+        parts.append(head + (": " + tiers if tiers else ""))
+        if s["routed"]:
+            parts.append("hook set %d" % s["routed"])
+        elif s["shadow"]:
+            parts.append("hook would set %d" % s["shadow"])
     else:
         parts.append("no subagents yet")
     if s.get("measured"):
-        money = "subagents $%.2f" % s["spend"] if s["spend"] >= 0.995 else "subagents $%.3f" % s["spend"]
+        money = "$%.2f" % s["spend"] if s["spend"] >= 0.995 else "$%.3f" % s["spend"]
         if s["rates_known"] and s["at_session_rates"] > s["spend"] > 0:
-            money += " (session rates $%.2f)" % s["at_session_rates"]
+            money += " vs $%.2f at session rates" % s["at_session_rates"]
         parts.append(money)
     if s["probes"]:
         parts.append("%d probes" % s["probes"])

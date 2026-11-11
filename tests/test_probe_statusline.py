@@ -144,9 +144,19 @@ class State(unittest.TestCase):
                                          "action": "filled"})
         ledger.append_event(self.state, {"ev": "done", "session": "s1", "tool_use_id": "t0", "escalated": True})
         ledger.append_event(self.state, {"ev": "usage", "session": "s1", "agent_id": "a0", "cost_usd": 0.015,
-                                         "session_rate_cost_usd": 0.31})
+                                         "session_rate_cost_usd": 0.31, "main_model": "claude-haiku-5-5"})
         self.assertEqual(self.line(json.dumps({"session_id": "s1", "model": {"display_name": "Fable"}})),
-                         "gearshift fill | 3 routed: haiku 2, sonnet 1 | subagents $0.015 (session rates $0.31) | 1 escalated")
+                         "gearshift fill | 4 subagents: haiku 1 | hook set 3 | $0.015 vs $0.31 at session rates | 1 escalated")
+
+    def test_statusline_counts_pinned_agents_claude_picked_itself(self):
+        # what the first live session looked like: every call went to a pinned gearshift agent
+        for i, model in enumerate(["claude-haiku-5-5"] * 8 + ["claude-sonnet-5-5"] * 3):
+            ledger.append_event(self.state, {"ev": "route", "session": "s1", "tool_use_id": "t%d" % i,
+                                             "action": "pinned", "agent_type": "gearshift:scout"})
+            ledger.append_event(self.state, {"ev": "usage", "session": "s1", "agent_id": "a%d" % i, "main_model": model,
+                                             "cost_usd": 0.02, "session_rate_cost_usd": 0.08})
+        self.assertEqual(self.line(json.dumps({"session_id": "s1"})),
+                         "gearshift fill | 11 subagents: haiku 8, sonnet 3 | $0.220 vs $0.88 at session rates")
         self.assertEqual(self.line(json.dumps({"session_id": "s1"}), GEARSHIFT_MODE="off"), "gearshift off")
 
     def test_statusline_never_breaks(self):
