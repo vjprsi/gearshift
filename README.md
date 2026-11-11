@@ -6,6 +6,35 @@ Model **and effort** routing for Claude. Every task in the right gear.
 
 It picks the cheapest model tier and effort level that will actually finish a piece of work, tells you why, and gives you the next rung to try if the result isn't good enough.
 
+## In short
+
+**What it is.** A Claude Code plugin (and a small Python library) that puts each piece of delegated work on the cheapest model and effort that will finish it: seven subagents pinned to a model, a hook that fills in the model when a call names none, a check you supply that runs after a subagent edits code, and a ledger of what ran where and what it cost.
+
+**Verified live** (Claude Code 2.1.322, headless on Windows, one interactive session on macOS; tables in [docs/RESULTS.md](docs/RESULTS.md)):
+
+- **Claude uses the agents on its own.** In two half-hour builds it chose a gearshift agent for 39 of 39 delegated calls. Nothing had to be enforced.
+- **Test runs cost about a cent.** Fifteen runs of a suite on the Haiku scout were $0.02 together; one test-running agent across a whole build was $0.02.
+- **The check works.** A failing check holds the subagent, hands it the output, and it fixes the problem before Claude sees the result. Work sent later with SendMessage is checked too.
+- **The ledger sees all of it.** Foreground and background agents, follow-up jobs and probes are each paired with their result and priced per model at list price.
+- **Escalation works.** A subagent that answers `ESCALATE:` and is sent the same task again runs one step up, pinned agent or not.
+
+**Not verified, or verified and unflattering:**
+
+- The failing checks and the `ESCALATE:` answers in those runs were set up by me. In 32 real checks nothing failed, and no subagent has escalated on its own.
+- With the agents installed, the hook has almost nothing left to route. It is a backstop.
+- The main session is 21% to 87% of a bill and routing does not touch it.
+- On small self-contained tasks Haiku passed everything the table sends higher. The table over-spends there.
+- Everything so far is one machine per platform and small projects. No interactive Windows session, no other people's ledgers.
+
+**Install:**
+
+```text
+/plugin marketplace add vjprsi/gearshift
+/plugin install gearshift@gearshift
+```
+
+Start with `GEARSHIFT_MODE=shadow` if you only want the ledger, run `/gearshift:doctor`, and read `/gearshift:report` after a session.
+
 Two ways to use it:
 
 - **Claude Code plugin** – 7 subagents pinned to a model + effort, a hook that fills in model/effort on subagent calls that didn't set them, a ledger of what ran where and what it cost, and a heads-up before a `/model` switch throws away your prompt cache.
