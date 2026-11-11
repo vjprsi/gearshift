@@ -1,6 +1,8 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0 (2026-11-11)
+
+Each of these was run before it was kept, and one was measured and removed. The tables are in `docs/RESULTS.md` and `docs/ACCURACY.md`.
 
 - `gearshift doctor --bundle`: a short block to paste into an issue. Versions of the CLI and the plugin, settings, a week of ledger counts, the status of the last dozen events. No paths, prompts, task descriptions, session ids or commands in it.
 - `doctor` warns when the plugin and the CLI are different versions, or when a pip-installed copy is not the one answering, and prints the command that fixes it. Mine were 1.0.0 against 1.4.1 and nothing said so.
@@ -8,7 +10,11 @@
 - `gearshift eval` no longer crashes on a Windows console that cannot print a task's characters.
 - Probing reaches the pinned reviewer. With `probe` on, that share of `gearshift:reviewer` calls runs one effort step down (sonnet@medium for sonnet@high): never another model, never a brief that mentions money, auth, production or a hard-to-reproduce bug, never a call that names a model or an effort. Logged as `probed`, shown in `report`, and `tune` files it under the agent without proposing a change. Run live: 18 reviews of diffs with 11 planted defects, 7 probed. High found 37 of 39, medium 25 of 27, at $0.076 and $0.058 a review. The defects were too easy to separate the two.
 - A review of a diff no longer goes to Opus because its checklist mentions thread safety, duplicate events or idempotency. I wrote 38 new briefs first (`tests/cases_review_blind.jsonl`), scored them once on the old rules: 81.6% on tier, 6 reviews over-routed to Opus, 1 investigation under-routed to Haiku. Then the rule: a new "a diff to review" signal keeps those reviews on Sonnet at high, and "find out why" is a bug hunt, not a lookup. The live set from 1.5.0 goes from 5 over-routed to 0. The two unseen sets are unchanged at 90%. Policy is 1.2.0. Details in `docs/ACCURACY.md`.
+- Fable 5.2's default effort in Claude Code is medium, not high (Anthropic's model configuration page, checked 2026-11-11; the API default is still high). Corrected in `models.json` and `docs/EVIDENCE.md`. No route changes: it only feeds the "this is the default" flag on a decision.
+- README: a summary at the top with what it is, what is verified live, the known limits and the install commands.
 - Tried and removed: a note to Claude when a contained edit is sent with SendMessage to an agent running on Opus. One build with it cost $5.77 against $5.79 without, and both noted jobs still ran on Opus. `docs/RESULTS.md` has the table.
+
+Not done: the walletcore benchmark is the next step. 24 of 25 single-tier runs exist and are in `docs/RESULTS.md` as a lab note, not a result: the reference tests depend on details the task text does not give, so the sandbox needs new tests before the numbers mean anything, and the router and cascade rows were never run. The check has still not caught a real mistake on its own: nothing failed in 40 real checks across four builds, and the one time it sent work back was a session I arranged. No subagent has escalated on its own. `tune` does not count SendMessage jobs. A SendMessage job still runs on whatever model the agent started on. The main session's share of the bill is untouched. Nothing here has run in an interactive Windows session or on anyone else's machine.
 
 ## 1.5.0 (2026-11-11)
 

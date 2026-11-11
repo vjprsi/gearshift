@@ -308,6 +308,9 @@ class Constraints(unittest.TestCase):
         self.assertEqual((api.effort, cc.effort), ("medium", "medium"))
         self.assertFalse(api.effort_is_default)   # Sonnet 5.5 defaults to high on the API
         self.assertTrue(cc.effort_is_default)     # and to medium in Claude Code
+        # so does Fable 5.2 (model-config page, checked 2026-11-11); on the API it is high
+        pol = self.r.policy
+        self.assertEqual((pol.default_effort("fable", "claude-code"), pol.default_effort("fable", "api")), ("medium", "high"))
 
     def test_haiku_long_prompt_note(self):
         d = self.r.route("Find every caller of parse_config().", context_tokens=250000)

@@ -22,7 +22,7 @@ Sources:
 | Claude Haiku 5.5, prompt up to 100K tokens | $0.10 | $0.50 | $0.01 | medium |
 | Claude Haiku 5.5, prompt over 100K tokens | $0.50 | $2.50 | $0.05 | medium |
 
-Cache writes cost 1.25x input (5-minute) or 2x input (1-hour). The Batch API halves input and output. Haiku's long-prompt rate is decided per request and counts cache reads and writes toward prompt length. In Claude Code, Sonnet 5.5 defaults to medium effort rather than high.
+Cache writes cost 1.25x input (5-minute) or 2x input (1-hour). The Batch API halves input and output. Haiku's long-prompt rate is decided per request and counts cache reads and writes toward prompt length. In Claude Code, Sonnet 5.5 and Fable 5.2 default to medium effort rather than high (the model configuration page: "Fable 5.2, Opus 5.5, Sonnet 5.5, and Haiku 5.5 default to `medium`"; checked 2026-11-11). Until 2.0 my price file had Fable at high in Claude Code. It only feeds the "this is the default effort" flag on a decision; no route changed.
 
 Used in: `src/gearshift/data/models.json`, `pricing.py`.
 

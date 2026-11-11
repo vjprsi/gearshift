@@ -193,7 +193,9 @@ An observation, not a finding: run 1 (brief on) had whole milestones done by the
 
 What three runs cannot show: whether `verify` catches a real mistake (no check failed in 32), whether a subagent escalates on its own (none did), whether probing is safe (one probe), whether the code from the cheaper runs is as good (I compared test counts, not the code), or anything about another project, an interactive session, or the judge.
 
-## On the way to 2.0
+## 2.0.0
+
+Four things were built for 2.0 and each was run before it was kept. One was measured and thrown out. One benchmark was started and is not finished. All of it is below, in that order.
 
 ### A note at SendMessage time: tried, measured, removed
 
@@ -259,6 +261,36 @@ Three things I tripped over myself on this machine, now in `doctor`:
 
 These are tested, and run by me on Windows. Nobody else has pasted a bundle yet.
 
+### The walletcore benchmark: started, not finished, and not a result yet
+
+The plan: replay walletcore's five tagged tasks on each tier alone, with a fresh headless Claude Code session per task, and grade with the tests from the commit that finished the task in the real repo. I stopped it before the last run and before writing it up properly, so read this as a lab note. It is the next thing to do.
+
+24 of 25 runs finished (Fable on task 5 did not). Each cell is the reference feature tests passed, and the cost of the run.
+
+| Task | Haiku | Sonnet | Opus | Fable (high) |
+|---|---|---|---|---|
+| 1 idempotency keys | 12 of 12, $0.03 | 12 of 12, $0.33 | 12 of 12, $0.58 | 12 of 12, $2.01 |
+| 2 daily limits | 18 of 18, $0.02 | 18 of 18, $0.36 | 18 of 18, $0.61 | 18 of 18, $2.00 |
+| 3 transfer fees | 8 of 17, $0.03 | 8 of 17, $0.38 | 17 of 17, $0.76 | 17 of 17, $2.34 |
+| 4 concurrent transfers | 13 of 13, $0.04 | 13 of 13, $0.49 | 13 of 13, $1.43 | 13 of 13, $2.87 |
+| 5 reconciliation report | 17 of 29, $0.13 | 17 of 29, $0.46 | 17 of 29, $1.41 | not run |
+
+Opus at high effort (where the router sends tasks 1, 3 and 4) was also run: 11 of 12 on task 1 for $0.76, 17 of 17 on task 3 for $0.76, 13 of 13 on task 4 for $1.81.
+
+Why this is not a result:
+
+- **The reference tests know things the task text does not say.** Every failure I read comes down to a detail of the original implementation: a `main(argv, out=, err=)` signature and dictionary keys like `held_in_accounts` (task 5, all tiers, the same 12 tests), a column named `idempotency_key` on one table (Opus at high on task 1, after Haiku had passed it), whether the fee account keeps a stored balance or lives in the ledger only (task 3, Haiku and Sonnet both chose ledger-only). After the first Haiku run I started giving every run the tests' import lines. That was not enough.
+- So a failed cell says "guessed a different design", not "wrote wrong code". I have not checked the code in the passing cells either, beyond the tests.
+- One run each. Tasks 3 and 5 also fail one reference test outside the feature file on every tier, for the same kind of reason.
+
+What I would still take from it, carefully: on tasks 1, 2 and 4 the reference tests are strict (thread storms, overdraft races) and Haiku passed all of them for 2 to 4 cents, where Sonnet cost $0.33 to $0.49 and Opus $0.58 to $1.43. That is the bench pack result again on something closer to real work, on three tasks.
+
+To finish it properly the sandbox needs tests that only use what the task text promises, then the router and cascade rows, then more than one run per cell. The 24 runs cost $19.61.
+
+**One session where the check sent work back.** Using what the Haiku run on task 3 had shown, I ran one headless session: a Sonnet main session hands task 3 to a Haiku subagent, and `verify` is the reference fee tests, kept outside the repo. The subagent reported the task done with its own 100 tests passing. The check failed 9 of 17. The hook held the subagent and handed it the output, it changed the fee account to keep a stored balance, the check passed, and only then did Claude get the result. $0.18.
+
+I do not count that as the check catching a real mistake on its own. I arranged it knowing where Haiku would differ from the reference. The "mistake" is the design choice above, which Sonnet made too. And once it was sent back, the subagent opened the reference test helper, because the hook's message carries the check command and the path was in it. It shows the path from a failing check to a fixed result works on real model output. That is all.
+
 ## What it cost
 
-Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45. Run 4 was $5.77. The 18 seeded-defect reviews were $1.39.
+Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45. Run 4 was $5.77. The 18 seeded-defect reviews were $1.39. The unfinished walletcore benchmark was $19.61 for the 24 runs that finished, plus under $3 for runs I broke or stopped, and the session with the check $0.18.
