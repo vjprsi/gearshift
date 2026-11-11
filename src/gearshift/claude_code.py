@@ -56,6 +56,8 @@ _BRIEF = (
     "gearshift:prover (fable: proofs, novel algorithms, problems smaller models failed). "
     "When an Agent call names no model, gearshift's hook fills one in from the task "
     "(mode: {mode}; it never assigns a tier above {cap}); a model passed explicitly is kept{strict}. "
+    "If a subagent's reply starts with ESCALATE:, the task was beyond it: send the same task again "
+    "without a model and the hook starts it one step up. "
     "The gearshift:routing skill has the full table, the escalation ladder and when not to delegate."
 )
 
@@ -275,6 +277,13 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
                          platform="claude-code", floor=floor)
         if d.tier == bumped[0] and EFFORTS.index(d.effort) < EFFORTS.index(bumped[1]):
             force_effort = bumped[1]
+        elif floor != bumped[0]:
+            # the step up is above the ceiling. Found live: the retry then fell back to the
+            # home rung, BELOW the one that had just failed. Stay where it failed instead.
+            rec["at_ceiling"] = True
+            if (d.tier == retry_from[0] and retry_from[1] in EFFORTS
+                    and EFFORTS.index(d.effort) < EFFORTS.index(retry_from[1])):
+                force_effort = retry_from[1]
         rec["bumped_from"] = "%s@%s" % retry_from
         rec["want_tier"], rec["want_effort"], rec["decision"] = d.tier, force_effort or d.effort, d
 
@@ -402,6 +411,10 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     if rec.get("bumped_from"):
         why = "gearshift: %s -> %s (same task fell short on %s, so one step up)" % (
             rec["agent_type"], label, rec["bumped_from"])
+        if rec.get("at_ceiling"):
+            why = ("gearshift: %s -> %s (same task fell short on %s and there is no step above it within "
+                   "your ceiling; if it falls short again, take it in the main session)" % (
+                       rec["agent_type"], label, rec["bumped_from"]))
     out: Dict[str, Any] = {"hookEventName": "PreToolUse", "updatedInput": updated,
                            "additionalContext": why + ". Pass model explicitly on an Agent call to override."}
     if cfg["permission"] in ("allow", "ask"):
@@ -495,7 +508,7 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         advice = "There is no step above it within your ceiling, so take this one in the main session."
     if bad_check:
         text = ("gearshift: this subagent ran on %s and reported the work done, but your check failed "
-                "(`%s`):\n%s\nDo not build on this result. %s" % (ran, cfg["verify"][:120], check[1], advice))
+                "(`%s`):\n%s\nDo not build on this result. %s" % (ran, cfg["verify"], check[1], advice))
     else:
         text = "gearshift: this subagent ran on %s and asked to escalate (%s). %s" % (ran, reason, advice)
     return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}}
@@ -548,10 +561,13 @@ def _background_outcome(inp: Mapping[str, Any], transcript: str) -> Optional[dic
         ledger.append_event(state_dir(), {"ev": "check", "session": inp.get("session_id"),
                                           "tool_use_id": task.get("id"), "agent_id": inp.get("agent_id"),
                                           "verify": "fail", "sent_back": True})
+        # the whole command, not a cut one: in the first live run the subagent could not
+        # run the check again because the message stopped at 120 characters
         return {"decision": "block", "reason": (
             "gearshift: you are not finished. The project's check failed (`%s`):\n%s\n"
             "Fix it and run the check again. If you cannot make it pass, stop and reply with a first "
-            "line that starts with ESCALATE: and one sentence on why." % (cfg["verify"][:120], check[1]))}
+            "line that starts with ESCALATE: and one sentence on why. Either way, end with your full "
+            "report of what you changed: your earlier reply was not delivered." % (cfg["verify"], check[1]))}
     event = {"ev": "done", "session": inp.get("session_id"), "tool_use_id": task.get("id"),
              "agent_id": inp.get("agent_id"), "status": "completed", "background": True}
     if reason:

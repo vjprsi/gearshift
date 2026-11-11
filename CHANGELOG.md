@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.4.2 (2026-11-10)
+
+I ran 1.4.1 for real: five headless sessions on Windows with a recorder next to the hooks. The main idea held (the agent id at launch is the one at SubagentStop, a failing check does hold a background subagent). Five smaller things were wrong. Write-up in `docs/RESULTS.md`.
+
+- The message that sends a subagent back quoted the check command cut at 120 characters, so it could not run it again. It gets the whole command now.
+- The session brief says what a reply starting with `ESCALATE:` means and to send the task again. For a background agent nothing else can tell the main session.
+- A retry with notes added ("a previous attempt may already have...") is recognised as the same task, so it starts one rung up. Only for tasks that fell short.
+- A retry at the ceiling stays on the rung that failed. It used to drop back to the class's home rung and announce "one step up".
+- A held subagent is asked to repeat its full report, because its first reply never reaches the main session.
+- Tests: `tests/live_payloads.json` holds the recorded payloads (paths removed) and eight tests replay them.
+
+Not done: the retry match and the full-report line were changed after the last live session and have only met tests. `ESCALATE:` from a foreground agent has still not happened live. All of this was headless, with a general-purpose subagent in a Sonnet session; no interactive session, no pinned agent. Probing and `tune` are where they were.
+
 ## 1.4.1 (2026-11-10)
 
 A real bug, found by reading my own ledger from a live session.

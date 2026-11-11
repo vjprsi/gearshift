@@ -60,6 +60,13 @@ Claude Code (2.1.251+; setting effort per call needs 2.1.292+):
 /plugin install gearshift@gearshift
 ```
 
+To update later, refresh the marketplace first and then the plugin, and restart Claude Code. No uninstall needed (I went from 1.0.0 to 1.4.1 this way):
+
+```bash
+claude plugin marketplace update gearshift
+claude plugin update gearshift@gearshift
+```
+
 The hook needs Python 3.9+ on your PATH. If it isn't there the hook just stays quiet, nothing breaks, and you still get the agents and the skill. On Windows it runs through Git Bash (Claude Code's default). `/gearshift:doctor` tells you if something is off.
 
 Library / CLI:
@@ -326,7 +333,8 @@ gearshift fill | 18 subagents: haiku 15, sonnet 3 | $0.976 vs $2.52 at session r
 
 This is 1.4, so here's exactly where it stands:
 
-- 206 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- 214 tests: routing, pricing, ladder, executor, ledger, every hook (run as a subprocess with the JSON payloads Claude Code documents, and since 1.4.2 with payloads recorded from real sessions), fail-open behaviour, plugin files. CI matrix is Linux / macOS / Windows.
+- Background subagents and `verify` are verified live, headless, on Windows (five sessions, Claude Code 2.1.322): launch and finish pair up by agent id, a failing check holds the subagent and hands it the output, it can fix the problem and leave, `ESCALATE:` is recorded, and the same task sent again starts one rung up. Five things were wrong and are fixed in 1.4.2; two of those fixes have only met tests since. Not verified live: `ESCALATE:` from a foreground agent, any of this with a pinned agent or in an interactive session, probing, `tune`. Details in [docs/RESULTS.md](docs/RESULTS.md).
 - The plugin passes `claude plugin validate` and loads on Claude Code 2.1.322 (7 hook events, 7 agents, 4 skills registered).
 - First full working session on macOS (18 subagent runs, 61% lower than session rates on the delegated part, numbers in [docs/RESULTS.md](docs/RESULTS.md)). In that session Claude picked the pinned agents itself every time, so the hook had nothing to change.
 - The hooks are verified end to end in a live session on Claude Code 2.1.322 on Windows: in `shadow` mode the call was logged and left alone, and in `fill` mode an unrouted Explore call was rewritten to Haiku and measured in the ledger. On my machine that same file-count task cost $0.31 on Opus (Claude Code's default for Explore) and $0.015 on Haiku, at list price. One run, not a benchmark. Other versions and platforms still need mileage, so start in `shadow` mode, check `/gearshift:report`, and open an issue with your `/gearshift:doctor` output if something is off.

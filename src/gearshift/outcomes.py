@@ -60,6 +60,13 @@ def find_prior(tasks: List[dict], fp: List[str], desc: str) -> Optional[dict]:
         same_desc = bool(desc) and desc == (t.get("desc") or "").strip().lower()
         if sim >= 0.6 or (same_desc and sim >= 0.35):
             return t
+        # a retry is rarely word for word. Live, the main session sent the failed task again with
+        # "a previous attempt may already have added..." on the end and a new description, which
+        # nearly doubled the words and dropped the overlap to 0.53. So for a task that fell short:
+        # if almost all of its words are in the new one, it is the same task with notes added.
+        old = set(t.get("fp") or [])
+        if t.get("short") and len(old) >= 8 and len(old & set(fp)) >= 0.85 * len(old):
+            return t
     return None
 
 
