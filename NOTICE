@@ -1,0 +1,19 @@
+gearshift
+Copyright (c) 2026 Vijay Pratap Singh. MIT License.
+
+The routing skill (skills/routing/SKILL.md) began as a rewrite of the skill in
+claude-model-router by Rajvardhman (https://github.com/Rajvardhman05/claude-model-router),
+which is itself a condensation of Anthropic's model-selection guidance. That
+project is MIT licensed:
+
+    MIT License
+    Copyright (c) 2026 Rajvardhman
+
+The idea of routing by delegation rather than switching the session model,
+the escalation order (verify, then effort, then model) and the shape of the
+routing table come from it. Where gearshift's table differs, docs/HOW_IT_WORKS.md
+says why and cites the measurement.
+
+Measurements quoted in this repository are Anthropic's, from its public
+documentation, and are cited where they appear. gearshift is an independent
+project and is not affiliated with or endorsed by Anthropic.

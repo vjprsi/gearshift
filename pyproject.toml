@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gearshift"
+version = "1.0.0"
+description = "Model and effort routing for Claude: the cheapest tier and effort that will finish each task, with reasons."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Vijay Pratap Singh" }]
+keywords = ["claude", "anthropic", "model-routing", "effort", "llm", "cost", "claude-code"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Libraries",
+]
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=2.0"]
+
+[project.urls]
+Homepage = "https://github.com/vjprsi/gearshift"
+Issues = "https://github.com/vjprsi/gearshift/issues"
+
+[project.scripts]
+gearshift = "gearshift.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gearshift = ["data/*.json"]

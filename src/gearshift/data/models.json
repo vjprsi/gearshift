@@ -1,0 +1,58 @@
+{
+  "as_of": "2026-11-10",
+  "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "unit": "USD per million tokens, list price",
+  "cache_write_multipliers": { "5m": 1.25, "1h": 2.0 },
+  "batch_discount": 0.5,
+  "tiers": {
+    "haiku": "claude-haiku-5-5",
+    "sonnet": "claude-sonnet-5-5",
+    "opus": "claude-opus-5-5",
+    "fable": "claude-fable-5-2"
+  },
+  "models": {
+    "claude-fable-5-2": {
+      "tier": "fable", "input": 8.0, "output": 40.0, "cache_read": 0.20,
+      "default_effort": { "api": "high", "claude_code": "high" },
+      "efforts": ["low", "medium", "high", "xhigh", "max"]
+    },
+    "claude-mythos-5-2": {
+      "tier": "fable", "input": 8.0, "output": 40.0, "cache_read": 0.20,
+      "default_effort": { "api": "high", "claude_code": "high" },
+      "efforts": ["low", "medium", "high", "xhigh", "max"]
+    },
+    "claude-opus-5-5": {
+      "tier": "opus", "input": 4.0, "output": 20.0, "cache_read": 0.20,
+      "default_effort": { "api": "medium", "claude_code": "medium" },
+      "efforts": ["low", "medium", "high", "xhigh", "max"]
+    },
+    "claude-sonnet-5-5": {
+      "tier": "sonnet", "input": 2.0, "output": 10.0, "cache_read": 0.10,
+      "default_effort": { "api": "high", "claude_code": "medium" },
+      "efforts": ["low", "medium", "high", "xhigh", "max"]
+    },
+    "claude-haiku-5-5": {
+      "tier": "haiku", "input": 0.10, "output": 0.50, "cache_read": 0.01,
+      "long_prompt": { "over_tokens": 100000, "input": 0.50, "output": 2.50, "cache_read": 0.05 },
+      "default_effort": { "api": "medium", "claude_code": "medium" },
+      "efforts": ["low", "medium", "high", "xhigh", "max"]
+    },
+
+    "claude-fable-5-1": { "tier": "fable", "input": 10.0, "output": 50.0, "cache_read": 0.25, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-mythos-5-1": { "tier": "fable", "input": 10.0, "output": 50.0, "cache_read": 0.25, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-fable-5": { "tier": "fable", "input": 10.0, "output": 50.0, "cache_read": 1.0, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-mythos-5": { "tier": "fable", "input": 10.0, "output": 50.0, "cache_read": 1.0, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-opus-5": { "tier": "opus", "input": 5.0, "output": 25.0, "cache_read": 0.50, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-opus-4-8": { "tier": "opus", "input": 5.0, "output": 25.0, "cache_read": 0.50, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-opus-4-7": { "tier": "opus", "input": 5.0, "output": 25.0, "cache_read": 0.50, "default_effort": { "api": "high", "claude_code": "xhigh" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-opus-4-6": { "tier": "opus", "input": 5.0, "output": 25.0, "cache_read": 0.50, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "max"] },
+    "claude-opus-4-5": { "tier": "opus", "input": 5.0, "output": 25.0, "cache_read": 0.50, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high"] },
+    "claude-opus-4-1": { "tier": "opus", "input": 15.0, "output": 75.0, "cache_read": 1.50, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": [] },
+    "claude-opus-4": { "tier": "opus", "input": 15.0, "output": 75.0, "cache_read": 1.50, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": [] },
+    "claude-sonnet-5": { "tier": "sonnet", "input": 2.0, "output": 10.0, "cache_read": 0.20, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "xhigh", "max"] },
+    "claude-sonnet-4-6": { "tier": "sonnet", "input": 3.0, "output": 15.0, "cache_read": 0.30, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": ["low", "medium", "high", "max"] },
+    "claude-sonnet-4-5": { "tier": "sonnet", "input": 3.0, "output": 15.0, "cache_read": 0.30, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": [] },
+    "claude-sonnet-4": { "tier": "sonnet", "input": 3.0, "output": 15.0, "cache_read": 0.30, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": [] },
+    "claude-haiku-4-5": { "tier": "haiku", "input": 1.0, "output": 5.0, "cache_read": 0.10, "default_effort": { "api": "high", "claude_code": "high" }, "efforts": [] }
+  }
+}

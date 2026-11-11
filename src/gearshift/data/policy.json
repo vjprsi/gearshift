@@ -1,0 +1,2533 @@
+{
+  "version": "1.0.0",
+  "as_of": "2026-11-10",
+  "about": "Routing policy for gearshift. Everything here is data: edit a copy and point GEARSHIFT_POLICY at it, or drop overrides in .gearshift.json. Patterns are case-insensitive regex fragments; the engine adds word boundaries on both ends.",
+  "tiers": [
+    "haiku",
+    "sonnet",
+    "opus",
+    "fable"
+  ],
+  "efforts": [
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max"
+  ],
+  "classes": {
+    "lookup": {
+      "tier": "haiku",
+      "effort": "medium",
+      "what": "Find files, grep, read logs, run tests and report, summarize long output",
+      "why": "Read-only and verbose: the cost is input tokens, and a wrong answer is easy to spot. Haiku at its default effort; at low it is more likely to skip a search or stop early in agent loops."
+    },
+    "extract": {
+      "tier": "haiku",
+      "effort": "low",
+      "what": "Classify, tag, extract fields, convert formats: single-shot, high-volume, checkable",
+      "why": "Simple high-volume requests are what Haiku at low effort is for, and outputs can be checked against a schema."
+    },
+    "edit": {
+      "tier": "sonnet",
+      "effort": "medium",
+      "what": "A well-scoped change against a clear spec; a contained bug fix",
+      "why": "Sonnet is the everyday coding tier; medium is the documented starting effort for well-specified agentic coding."
+    },
+    "write": {
+      "tier": "sonnet",
+      "effort": "medium",
+      "what": "Everyday documents, emails, summaries for people, slides, spreadsheets",
+      "why": "Content creation is Sonnet territory; effort barely changes reply length, so medium is enough."
+    },
+    "review": {
+      "tier": "sonnet",
+      "effort": "high",
+      "what": "Review, investigation, analysis, comparison: repeated agent tasks that need judgment",
+      "why": "Judgment work where missing something is the failure mode, so Sonnet runs at high (87.6% vs 80.3% at medium on SWE-bench Pro)."
+    },
+    "build": {
+      "tier": "opus",
+      "effort": "medium",
+      "what": "Multi-file features, tricky debugging, performance work, computer use, vision-heavy work",
+      "why": "Opus at its default effort is Anthropic's recommended starting point for most agent workloads (92.8% at $0.22 per solved task on SWE-bench Pro)."
+    },
+    "design": {
+      "tier": "opus",
+      "effort": "high",
+      "what": "Architecture, major refactors and migrations, complex systems engineering",
+      "why": "Anthropic's selection matrix puts large-scale refactoring and complex systems engineering on Opus; high effort because a planning mistake is paid for by everything built on it."
+    },
+    "research": {
+      "tier": "opus",
+      "effort": "high",
+      "what": "Multistep deep research and analysis carried through to a finished report; leading other agents",
+      "why": "On Anthropic's research benchmark Opus scored 2.4 points above Sonnet for 1.5x the cost, while Fable cost 4.3x Sonnet with no measurable gain; as an orchestrator Fable cost 19% more than Opus for about the same score."
+    },
+    "frontier": {
+      "tier": "fable",
+      "effort": "high",
+      "what": "The hardest reasoning: proofs, novel algorithms, scientific and quantitative work, problems smaller models already failed",
+      "why": "The highest-capability tier, for when capability matters more than cost. Mostly a rung to climb to (Anthropic: move to Fable when Opus at xhigh still falls short); a starting point only when the brief says the problem is that hard. Most of its gain is already present at high."
+    },
+    "chat": {
+      "tier": "sonnet",
+      "effort": "low",
+      "what": "A conversational question a person is waiting on",
+      "why": "Latency-sensitive; the docs start chat at low or medium on Sonnet."
+    },
+    "unsure": {
+      "tier": "opus",
+      "effort": "medium",
+      "what": "Not enough signal to classify",
+      "why": "When unsure, Anthropic's guidance is to start on Opus at its default effort and optimize down later."
+    }
+  },
+  "ladder": [
+    [
+      "haiku",
+      "low"
+    ],
+    [
+      "haiku",
+      "medium"
+    ],
+    [
+      "haiku",
+      "high"
+    ],
+    [
+      "sonnet",
+      "medium"
+    ],
+    [
+      "sonnet",
+      "high"
+    ],
+    [
+      "opus",
+      "medium"
+    ],
+    [
+      "opus",
+      "high"
+    ],
+    [
+      "opus",
+      "xhigh"
+    ],
+    [
+      "fable",
+      "high"
+    ],
+    [
+      "fable",
+      "xhigh"
+    ]
+  ],
+  "effort_caps": {
+    "haiku": "high",
+    "sonnet": "high",
+    "opus": "xhigh",
+    "fable": "xhigh"
+  },
+  "thresholds": {
+    "min_signal": 1.5,
+    "torn_margin": 0.2,
+    "act_confidence": 0.55,
+    "judge_below": 0.5,
+    "frontier_min": 2.0,
+    "torn_margin_per_tier_gap": [
+      0.2,
+      0.35,
+      0.5
+    ]
+  },
+  "lead_verbs": {
+    "find": {
+      "lookup": 3
+    },
+    "search": {
+      "lookup": 3
+    },
+    "grep": {
+      "lookup": 3
+    },
+    "locate": {
+      "lookup": 3
+    },
+    "list": {
+      "lookup": 3
+    },
+    "count": {
+      "lookup": 3
+    },
+    "enumerate": {
+      "lookup": 3
+    },
+    "tail": {
+      "lookup": 3
+    },
+    "look": {
+      "lookup": 2,
+      "review": 1
+    },
+    "read": {
+      "lookup": 2.5
+    },
+    "scan": {
+      "lookup": 2.5
+    },
+    "show": {
+      "lookup": 2.5
+    },
+    "report": {
+      "lookup": 1.0
+    },
+    "gather": {
+      "lookup": 2.5
+    },
+    "collect": {
+      "lookup": 2.5
+    },
+    "explore": {
+      "lookup": 2.5
+    },
+    "fetch": {
+      "lookup": 2.5
+    },
+    "map": {
+      "lookup": 2
+    },
+    "get": {
+      "lookup": 1.5
+    },
+    "inspect": {
+      "lookup": 2,
+      "review": 1
+    },
+    "identify": {
+      "lookup": 2,
+      "review": 1
+    },
+    "trace": {
+      "lookup": 2,
+      "review": 1
+    },
+    "check": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "verify": {
+      "lookup": 2,
+      "review": 1
+    },
+    "confirm": {
+      "lookup": 2
+    },
+    "run": {
+      "lookup": 2
+    },
+    "test": {
+      "lookup": 1.5,
+      "edit": 1.5
+    },
+    "summarize": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "summarise": {
+      "lookup": 1.5,
+      "write": 1.5
+    },
+    "classify": {
+      "extract": 3
+    },
+    "categorize": {
+      "extract": 3
+    },
+    "categorise": {
+      "extract": 3
+    },
+    "tag": {
+      "extract": 3
+    },
+    "label": {
+      "extract": 3
+    },
+    "extract": {
+      "extract": 2.5,
+      "edit": 1
+    },
+    "parse": {
+      "extract": 3
+    },
+    "normalize": {
+      "extract": 2.5
+    },
+    "deduplicate": {
+      "extract": 2.5
+    },
+    "dedupe": {
+      "extract": 2.5
+    },
+    "sort": {
+      "extract": 2.5
+    },
+    "route": {
+      "extract": 2.5
+    },
+    "detect": {
+      "extract": 2.5
+    },
+    "score": {
+      "extract": 2.5
+    },
+    "match": {
+      "extract": 2.5
+    },
+    "bucket": {
+      "extract": 2.5
+    },
+    "triage": {
+      "extract": 2,
+      "review": 1
+    },
+    "convert": {
+      "extract": 2,
+      "edit": 1.5
+    },
+    "transform": {
+      "extract": 2,
+      "edit": 1
+    },
+    "fix": {
+      "edit": 2.5,
+      "build": 1
+    },
+    "rename": {
+      "edit": 3
+    },
+    "update": {
+      "edit": 2.5
+    },
+    "add": {
+      "edit": 2.5,
+      "build": 0.5
+    },
+    "remove": {
+      "edit": 2.5
+    },
+    "delete": {
+      "edit": 2.5
+    },
+    "replace": {
+      "edit": 2.5
+    },
+    "change": {
+      "edit": 2.5
+    },
+    "modify": {
+      "edit": 2.5
+    },
+    "edit": {
+      "edit": 2.5
+    },
+    "adjust": {
+      "edit": 2.5
+    },
+    "tweak": {
+      "edit": 2.5
+    },
+    "correct": {
+      "edit": 2.5
+    },
+    "patch": {
+      "edit": 2.5
+    },
+    "bump": {
+      "edit": 3
+    },
+    "format": {
+      "edit": 2.5
+    },
+    "lint": {
+      "edit": 2.5
+    },
+    "apply": {
+      "edit": 2.5
+    },
+    "insert": {
+      "edit": 2.5
+    },
+    "move": {
+      "edit": 2.5
+    },
+    "wire": {
+      "edit": 2,
+      "build": 1
+    },
+    "make": {
+      "edit": 1.5,
+      "build": 1
+    },
+    "create": {
+      "edit": 1.5,
+      "build": 1.5,
+      "write": 0.5
+    },
+    "generate": {
+      "write": 1,
+      "edit": 1,
+      "extract": 1
+    },
+    "write": {
+      "write": 1.5,
+      "edit": 1.5
+    },
+    "draft": {
+      "write": 3
+    },
+    "compose": {
+      "write": 3
+    },
+    "proofread": {
+      "write": 3
+    },
+    "translate": {
+      "write": 3
+    },
+    "reword": {
+      "write": 3
+    },
+    "rephrase": {
+      "write": 3
+    },
+    "document": {
+      "write": 3
+    },
+    "describe": {
+      "write": 2,
+      "lookup": 1
+    },
+    "rewrite": {
+      "write": 2,
+      "build": 1
+    },
+    "outline": {
+      "write": 2.5
+    },
+    "review": {
+      "review": 3
+    },
+    "investigate": {
+      "review": 2.5
+    },
+    "analyze": {
+      "review": 2.5
+    },
+    "analyse": {
+      "review": 2.5
+    },
+    "audit": {
+      "review": 2.5
+    },
+    "compare": {
+      "review": 2.5
+    },
+    "evaluate": {
+      "review": 2.5
+    },
+    "assess": {
+      "review": 2.5
+    },
+    "research": {
+      "review": 2.5
+    },
+    "diagnose": {
+      "review": 2.5,
+      "build": 1
+    },
+    "critique": {
+      "review": 2.5
+    },
+    "examine": {
+      "review": 2.5
+    },
+    "study": {
+      "review": 2.5
+    },
+    "benchmark": {
+      "review": 2,
+      "build": 1
+    },
+    "explain": {
+      "review": 2,
+      "chat": 1
+    },
+    "decide": {
+      "review": 2,
+      "design": 1.5
+    },
+    "choose": {
+      "review": 2,
+      "design": 1.5
+    },
+    "recommend": {
+      "review": 2,
+      "design": 1.5
+    },
+    "implement": {
+      "build": 2.5,
+      "edit": 1.5
+    },
+    "build": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "develop": {
+      "build": 2.5,
+      "edit": 0.5
+    },
+    "debug": {
+      "build": 2.5,
+      "review": 1
+    },
+    "optimize": {
+      "build": 2.5
+    },
+    "optimise": {
+      "build": 2.5
+    },
+    "profile": {
+      "build": 2.5
+    },
+    "integrate": {
+      "build": 2.5
+    },
+    "port": {
+      "build": 2.5
+    },
+    "scaffold": {
+      "build": 2.5
+    },
+    "automate": {
+      "build": 2.5
+    },
+    "refactor": {
+      "build": 2,
+      "edit": 1.5,
+      "design": 1
+    },
+    "solve": {
+      "build": 2,
+      "review": 1
+    },
+    "design": {
+      "design": 3
+    },
+    "architect": {
+      "design": 3
+    },
+    "restructure": {
+      "design": 3
+    },
+    "rearchitect": {
+      "design": 3
+    },
+    "migrate": {
+      "design": 2.5,
+      "build": 1.5
+    },
+    "plan": {
+      "design": 2,
+      "write": 1
+    },
+    "propose": {
+      "design": 2,
+      "write": 1
+    },
+    "prove": {
+      "frontier": 3
+    },
+    "derive": {
+      "frontier": 3
+    },
+    "figure": {
+      "review": 2.5
+    },
+    "determine": {
+      "review": 2
+    },
+    "understand": {
+      "review": 1.5,
+      "lookup": 1.5
+    },
+    "track": {
+      "review": 2,
+      "build": 1
+    },
+    "orchestrate": {
+      "research": 2.5
+    },
+    "coordinate": {
+      "research": 2.5
+    },
+    "open": {
+      "lookup": 2.5
+    },
+    "split": {
+      "extract": 2.5
+    },
+    "mark": {
+      "extract": 2.5
+    },
+    "flag": {
+      "extract": 2,
+      "review": 1
+    },
+    "group": {
+      "extract": 2.5
+    },
+    "output": {
+      "extract": 1.5
+    },
+    "turn": {
+      "extract": 1.5,
+      "write": 1
+    },
+    "pull": {
+      "extract": 2,
+      "lookup": 1
+    },
+    "calculate": {
+      "extract": 1.5,
+      "review": 1
+    },
+    "compute": {
+      "extract": 1.5,
+      "review": 1
+    },
+    "swap": {
+      "edit": 2.5
+    },
+    "wrap": {
+      "edit": 2.5
+    },
+    "set": {
+      "edit": 2
+    },
+    "enable": {
+      "edit": 2.5
+    },
+    "disable": {
+      "edit": 2.5
+    },
+    "install": {
+      "edit": 2
+    },
+    "upgrade": {
+      "edit": 2,
+      "build": 0.5
+    },
+    "downgrade": {
+      "edit": 2
+    },
+    "revert": {
+      "edit": 2.5
+    },
+    "merge": {
+      "edit": 2
+    },
+    "rebase": {
+      "edit": 2
+    },
+    "configure": {
+      "edit": 2
+    },
+    "simplify": {
+      "edit": 2
+    },
+    "clean": {
+      "edit": 2
+    },
+    "extend": {
+      "edit": 2,
+      "build": 1
+    },
+    "expose": {
+      "edit": 2
+    },
+    "handle": {
+      "edit": 1.0
+    },
+    "hide": {
+      "edit": 2.5
+    },
+    "prepare": {
+      "write": 2
+    },
+    "produce": {
+      "write": 1.5
+    },
+    "polish": {
+      "write": 2.5
+    },
+    "shorten": {
+      "write": 2.5
+    },
+    "reproduce": {
+      "build": 2
+    },
+    "deploy": {
+      "build": 1.5,
+      "edit": 1
+    },
+    "estimate": {
+      "review": 2
+    },
+    "validate": {
+      "lookup": 1.5,
+      "review": 1.5
+    },
+    "monitor": {
+      "lookup": 2
+    },
+    "watch": {
+      "lookup": 2
+    },
+    "download": {
+      "lookup": 2
+    },
+    "teach": {
+      "write": 2
+    },
+    "brainstorm": {
+      "write": 2
+    },
+    "suggest": {
+      "review": 2
+    },
+    "dig": {
+      "lookup": 2
+    },
+    "print": {
+      "lookup": 2
+    },
+    "display": {
+      "lookup": 2
+    },
+    "dump": {
+      "lookup": 2
+    },
+    "query": {
+      "lookup": 2
+    },
+    "lookup": {
+      "lookup": 2
+    },
+    "retrieve": {
+      "lookup": 2
+    },
+    "browse": {
+      "lookup": 2
+    },
+    "skim": {
+      "lookup": 2
+    },
+    "view": {
+      "lookup": 2
+    },
+    "see": {
+      "lookup": 2
+    },
+    "survey": {
+      "lookup": 2
+    },
+    "inventory": {
+      "lookup": 2
+    },
+    "crawl": {
+      "lookup": 2
+    },
+    "measure": {
+      "lookup": 2
+    },
+    "peek": {
+      "lookup": 2
+    },
+    "ls": {
+      "lookup": 2
+    },
+    "cat": {
+      "lookup": 2
+    },
+    "pinpoint": {
+      "lookup": 2
+    },
+    "name": {
+      "lookup": 2
+    },
+    "spot": {
+      "lookup": 2
+    },
+    "audit-log": {
+      "lookup": 2
+    },
+    "diff": {
+      "lookup": 2,
+      "review": 1
+    },
+    "scrape": {
+      "extract": 2,
+      "lookup": 1.5
+    },
+    "redact": {
+      "extract": 2.5
+    },
+    "mask": {
+      "extract": 2.5
+    },
+    "anonymize": {
+      "extract": 2.5
+    },
+    "anonymise": {
+      "extract": 2.5
+    },
+    "assign": {
+      "extract": 2.5
+    },
+    "standardize": {
+      "extract": 2.5
+    },
+    "standardise": {
+      "extract": 2.5
+    },
+    "canonicalize": {
+      "extract": 2.5
+    },
+    "filter": {
+      "extract": 2.5
+    },
+    "rank": {
+      "extract": 2.5
+    },
+    "order": {
+      "extract": 2.5
+    },
+    "join": {
+      "extract": 2.5
+    },
+    "fill": {
+      "extract": 2.5
+    },
+    "populate": {
+      "extract": 2.5
+    },
+    "tokenize": {
+      "extract": 2.5
+    },
+    "transcribe": {
+      "extract": 2.5
+    },
+    "tabulate": {
+      "extract": 2.5
+    },
+    "aggregate": {
+      "extract": 2.5
+    },
+    "sum": {
+      "extract": 2.5
+    },
+    "total": {
+      "extract": 2.5
+    },
+    "encode": {
+      "extract": 2.5
+    },
+    "decode": {
+      "extract": 2.5
+    },
+    "bin": {
+      "extract": 2.5
+    },
+    "cluster": {
+      "extract": 2.5
+    },
+    "number": {
+      "extract": 2.5
+    },
+    "stop": {
+      "edit": 2
+    },
+    "point": {
+      "edit": 2
+    },
+    "cover": {
+      "edit": 2
+    },
+    "pin": {
+      "edit": 2
+    },
+    "drop": {
+      "edit": 2
+    },
+    "switch": {
+      "edit": 2
+    },
+    "toggle": {
+      "edit": 2
+    },
+    "comment": {
+      "edit": 2
+    },
+    "uncomment": {
+      "edit": 2
+    },
+    "inline": {
+      "edit": 2
+    },
+    "hoist": {
+      "edit": 2
+    },
+    "deprecate": {
+      "edit": 2
+    },
+    "mock": {
+      "edit": 2
+    },
+    "stub": {
+      "edit": 2
+    },
+    "guard": {
+      "edit": 2
+    },
+    "restrict": {
+      "edit": 2
+    },
+    "allow": {
+      "edit": 2
+    },
+    "block": {
+      "edit": 2
+    },
+    "skip": {
+      "edit": 2
+    },
+    "tidy": {
+      "edit": 2
+    },
+    "annotate": {
+      "edit": 2
+    },
+    "unify": {
+      "edit": 2
+    },
+    "consolidate": {
+      "edit": 2
+    },
+    "strip": {
+      "edit": 2
+    },
+    "trim": {
+      "edit": 2
+    },
+    "truncate": {
+      "edit": 2
+    },
+    "pad": {
+      "edit": 2
+    },
+    "escape": {
+      "edit": 2
+    },
+    "sanitize": {
+      "edit": 2
+    },
+    "sanitise": {
+      "edit": 2
+    },
+    "parametrize": {
+      "edit": 2
+    },
+    "hard-code": {
+      "edit": 2
+    },
+    "hardcode": {
+      "edit": 2
+    },
+    "hook": {
+      "edit": 2
+    },
+    "register": {
+      "edit": 2
+    },
+    "import": {
+      "edit": 2
+    },
+    "commit": {
+      "edit": 2
+    },
+    "push": {
+      "edit": 2
+    },
+    "backport": {
+      "edit": 2
+    },
+    "cherry-pick": {
+      "edit": 2
+    },
+    "resolve": {
+      "edit": 2
+    },
+    "restore": {
+      "edit": 2
+    },
+    "undo": {
+      "edit": 2
+    },
+    "raise": {
+      "edit": 2
+    },
+    "lower": {
+      "edit": 2
+    },
+    "increase": {
+      "edit": 2
+    },
+    "decrease": {
+      "edit": 2
+    },
+    "reduce": {
+      "edit": 2
+    },
+    "limit": {
+      "edit": 2
+    },
+    "cap": {
+      "edit": 2
+    },
+    "round": {
+      "edit": 2
+    },
+    "initialize": {
+      "edit": 2
+    },
+    "initialise": {
+      "edit": 2
+    },
+    "reset": {
+      "edit": 2
+    },
+    "clear": {
+      "edit": 2
+    },
+    "flush": {
+      "edit": 2
+    },
+    "seed": {
+      "edit": 2
+    },
+    "persist": {
+      "edit": 2
+    },
+    "emit": {
+      "edit": 2
+    },
+    "throw": {
+      "edit": 2
+    },
+    "catch": {
+      "edit": 2
+    },
+    "retry": {
+      "edit": 2
+    },
+    "await": {
+      "edit": 2
+    },
+    "return": {
+      "edit": 2
+    },
+    "expand": {
+      "edit": 2
+    },
+    "shrink": {
+      "edit": 2
+    },
+    "align": {
+      "edit": 2
+    },
+    "center": {
+      "edit": 2
+    },
+    "centre": {
+      "edit": 2
+    },
+    "indent": {
+      "edit": 2
+    },
+    "reorder": {
+      "edit": 2
+    },
+    "rewire": {
+      "edit": 2
+    },
+    "unblock": {
+      "edit": 2
+    },
+    "silence": {
+      "edit": 2
+    },
+    "suppress": {
+      "edit": 2
+    },
+    "mute": {
+      "edit": 2
+    },
+    "localize": {
+      "edit": 2
+    },
+    "localise": {
+      "edit": 2
+    },
+    "internationalize": {
+      "edit": 2
+    },
+    "pluralize": {
+      "edit": 2
+    },
+    "capitalize": {
+      "edit": 2
+    },
+    "uppercase": {
+      "edit": 2
+    },
+    "lowercase": {
+      "edit": 2
+    },
+    "alphabetize": {
+      "edit": 2
+    },
+    "reply": {
+      "write": 2.5
+    },
+    "respond": {
+      "write": 2.5
+    },
+    "email": {
+      "write": 2.5
+    },
+    "announce": {
+      "write": 2.5
+    },
+    "pitch": {
+      "write": 2.5
+    },
+    "condense": {
+      "write": 2.5
+    },
+    "elaborate": {
+      "write": 2.5
+    },
+    "paraphrase": {
+      "write": 2.5
+    },
+    "tighten": {
+      "write": 2.5
+    },
+    "soften": {
+      "write": 2.5
+    },
+    "apologize": {
+      "write": 2.5
+    },
+    "apologise": {
+      "write": 2.5
+    },
+    "thank": {
+      "write": 2.5
+    },
+    "congratulate": {
+      "write": 2.5
+    },
+    "invite": {
+      "write": 2.5
+    },
+    "remind": {
+      "write": 2.5
+    },
+    "notify": {
+      "write": 2.5
+    },
+    "brief": {
+      "write": 2.5
+    },
+    "recap": {
+      "write": 2.5
+    },
+    "narrate": {
+      "write": 2.5
+    },
+    "script": {
+      "write": 2.5
+    },
+    "title": {
+      "write": 2.5
+    },
+    "headline": {
+      "write": 2.5
+    },
+    "put": {
+      "write": 2
+    },
+    "give": {
+      "write": 1.5,
+      "lookup": 1
+    },
+    "compile": {
+      "write": 2
+    },
+    "list-out": {
+      "write": 2
+    },
+    "jot": {
+      "write": 2
+    },
+    "note": {
+      "write": 2
+    },
+    "double-check": {
+      "review": 2.5
+    },
+    "sanity-check": {
+      "review": 2.5
+    },
+    "poke": {
+      "review": 2.5
+    },
+    "challenge": {
+      "review": 2.5
+    },
+    "question": {
+      "review": 2.5
+    },
+    "weigh": {
+      "review": 2.5
+    },
+    "judge": {
+      "review": 2.5
+    },
+    "rate": {
+      "review": 2.5
+    },
+    "grade": {
+      "review": 2.5
+    },
+    "vet": {
+      "review": 2.5
+    },
+    "interpret": {
+      "review": 2.5
+    },
+    "justify": {
+      "review": 2.5
+    },
+    "reason": {
+      "review": 2.5
+    },
+    "think": {
+      "review": 2.5
+    },
+    "consider": {
+      "review": 2.5
+    },
+    "troubleshoot": {
+      "review": 2.5
+    },
+    "advise": {
+      "review": 2.5
+    },
+    "pick": {
+      "review": 2.5
+    },
+    "inspect-and-report": {
+      "review": 2.5
+    },
+    "second-guess": {
+      "review": 2.5
+    },
+    "stress-test": {
+      "review": 2.5
+    },
+    "reconcile": {
+      "review": 2.5
+    },
+    "explain-why": {
+      "review": 2.5
+    },
+    "work": {
+      "review": 2
+    },
+    "tell": {
+      "lookup": 1,
+      "review": 1
+    },
+    "help": {
+      "review": 1
+    },
+    "ship": {
+      "build": 2.5
+    },
+    "launch": {
+      "build": 2.5
+    },
+    "bootstrap": {
+      "build": 2.5
+    },
+    "prototype": {
+      "build": 2.5
+    },
+    "construct": {
+      "build": 2.5
+    },
+    "engineer": {
+      "build": 2.5
+    },
+    "containerize": {
+      "build": 2.5
+    },
+    "dockerize": {
+      "build": 2.5
+    },
+    "parallelize": {
+      "build": 2.5
+    },
+    "instrument": {
+      "build": 2.5
+    },
+    "harden": {
+      "build": 2.5
+    },
+    "secure": {
+      "build": 2.5
+    },
+    "tune": {
+      "build": 2.5
+    },
+    "scale": {
+      "build": 2.5
+    },
+    "speed": {
+      "build": 2.5
+    },
+    "rework": {
+      "build": 2.5
+    },
+    "rollout": {
+      "build": 2.5
+    },
+    "roll": {
+      "build": 2.5
+    },
+    "productionize": {
+      "build": 2.5
+    },
+    "stabilize": {
+      "build": 2.5
+    },
+    "stabilise": {
+      "build": 2.5
+    },
+    "setup": {
+      "build": 1.5,
+      "edit": 1.5
+    },
+    "shard": {
+      "design": 2.5
+    },
+    "partition": {
+      "design": 2.5
+    },
+    "decompose": {
+      "design": 2.5
+    },
+    "structure": {
+      "design": 2.5
+    },
+    "scope": {
+      "design": 2.5
+    },
+    "strategize": {
+      "design": 2.5
+    },
+    "modernize": {
+      "design": 2.5
+    },
+    "modernise": {
+      "design": 2.5
+    },
+    "overhaul": {
+      "design": 2.5
+    },
+    "specify": {
+      "design": 2.5
+    },
+    "spec": {
+      "design": 2.5
+    },
+    "define": {
+      "design": 2.5
+    },
+    "lay": {
+      "design": 2.5
+    },
+    "sequence": {
+      "design": 2.5
+    },
+    "phase": {
+      "design": 2.5
+    },
+    "organize": {
+      "design": 1.5,
+      "write": 1
+    },
+    "organise": {
+      "design": 1.5,
+      "write": 1
+    },
+    "break": {
+      "design": 1.5,
+      "write": 1
+    },
+    "establish": {
+      "frontier": 2.5
+    },
+    "formalize": {
+      "frontier": 2.5
+    },
+    "formalise": {
+      "frontier": 2.5
+    },
+    "disprove": {
+      "frontier": 2.5
+    }
+  },
+  "mutating_verbs": [
+    "add",
+    "adjust",
+    "align",
+    "allow",
+    "annotate",
+    "automate",
+    "backport",
+    "block",
+    "bootstrap",
+    "build",
+    "bump",
+    "cap",
+    "catch",
+    "center",
+    "centre",
+    "change",
+    "cherry-pick",
+    "clean",
+    "clear",
+    "comment",
+    "commit",
+    "configure",
+    "consolidate",
+    "construct",
+    "containerize",
+    "correct",
+    "cover",
+    "debug",
+    "decrease",
+    "delete",
+    "deploy",
+    "deprecate",
+    "develop",
+    "disable",
+    "dockerize",
+    "downgrade",
+    "drop",
+    "edit",
+    "emit",
+    "enable",
+    "escape",
+    "expand",
+    "expose",
+    "extend",
+    "fix",
+    "flush",
+    "guard",
+    "handle",
+    "hard-code",
+    "hardcode",
+    "harden",
+    "hide",
+    "hoist",
+    "hook",
+    "implement",
+    "increase",
+    "indent",
+    "initialise",
+    "initialize",
+    "inline",
+    "insert",
+    "install",
+    "instrument",
+    "integrate",
+    "launch",
+    "limit",
+    "lint",
+    "localise",
+    "localize",
+    "lower",
+    "merge",
+    "migrate",
+    "mock",
+    "modify",
+    "mute",
+    "optimise",
+    "optimize",
+    "pad",
+    "parallelize",
+    "parametrize",
+    "patch",
+    "persist",
+    "pin",
+    "point",
+    "port",
+    "prototype",
+    "push",
+    "raise",
+    "rearchitect",
+    "rebase",
+    "reduce",
+    "refactor",
+    "register",
+    "remove",
+    "rename",
+    "reorder",
+    "replace",
+    "reset",
+    "resolve",
+    "restore",
+    "restrict",
+    "restructure",
+    "retry",
+    "return",
+    "revert",
+    "rewire",
+    "rework",
+    "rewrite",
+    "roll",
+    "rollout",
+    "round",
+    "sanitise",
+    "sanitize",
+    "scaffold",
+    "scale",
+    "secure",
+    "seed",
+    "set",
+    "setup",
+    "ship",
+    "shrink",
+    "silence",
+    "simplify",
+    "skip",
+    "stop",
+    "strip",
+    "stub",
+    "suppress",
+    "swap",
+    "switch",
+    "throw",
+    "tidy",
+    "toggle",
+    "trim",
+    "truncate",
+    "tune",
+    "tweak",
+    "unblock",
+    "uncomment",
+    "undo",
+    "unify",
+    "update",
+    "upgrade",
+    "wire",
+    "wrap"
+  ],
+  "signals": [
+    {
+      "name": "explicit read-only instruction",
+      "flag": "read_only",
+      "patterns": [
+        "read[- ]only",
+        "(?:do not|don't|dont|never) (?:modify|edit|change|write|touch|alter) (?:any(?! other)|anything(?! else)|the code|code|files|the files|the repo\\w*|the source)",
+        "without (?:modifying|changing|editing|touching) (?:any(?! other)|anything(?! else)|the code|code|files)",
+        "no (?:code )?(?:changes|edits|modifications)(?! to other)(?! outside)",
+        "(?:just|only) report",
+        "research only",
+        "(?:do not|don't|dont) make (?:any )?(?:code )?changes",
+        "(?:do not|don't|dont) (?:attempt to |try to )?fix (?:anything|any|them|it|the)",
+        "(?:do not|don't|dont) write (?:any )?code",
+        "i only need the facts",
+        "not write code yet"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "explicitly contained scope",
+      "flag": "contained",
+      "patterns": [
+        "(?:do not|don't|dont) (?:touch|modify|edit|change) (?:any )?other (?:files|code|modules)",
+        "(?:small|limited|narrow) and self-contained",
+        "self-contained",
+        "well[- ]scoped",
+        "contained to",
+        "keep (?:the|this) change (?:contained|small|minimal|focused)",
+        "minimal (?:change|diff)",
+        "only (?:touch|change|edit|modify) ",
+        "(?:just|only) (?:this|that|these|those|the) (?:one |two |three )?(?:file|files|function|method)",
+        "your part is (?:small|limited|narrow)",
+        "nothing else"
+      ],
+      "adds": {
+        "edit": 1.0
+      }
+    },
+    {
+      "name": "search or read target",
+      "patterns": [
+        "(?:error|server|build|ci|test|application|app|access|crash|deploy\\w*|production|prod) logs?",
+        "stack ?traces?",
+        "tracebacks?",
+        "(?:all|every|any) (?:the )?(?:usages?|references?|occurrences?|callers?|call sites?|imports?|instances|places|mentions|definitions)",
+        "where \\w+(?: \\w+){0,6} (?:is|are|gets?) (?:defined|used|called|handled|configured|set|declared|implemented|registered)",
+        "which (?:files?|modules?|functions?|tests?|services?)",
+        "file paths?",
+        "test (?:results|output|failures)",
+        "run (?:the |all |our )?(?:unit |integration |e2e )?(?:test suite|tests)",
+        "(?:summary|summari[sz]e) (?:of )?(?:the )?(?:\\w+ )?(?:logs?|output|diff|results|findings|files?|transcript|thread)",
+        "grep",
+        "ripgrep",
+        "glob",
+        "directory (?:structure|tree|listing)",
+        "what (?:files?|tests?|endpoints?|routes?|dependencies) (?:exist|are there|do we have)",
+        "(?:is|are|still) (?:\\w+ )?(?:used|referenced|called|imported|needed) (?:anywhere|elsewhere|outside|in|by)",
+        "used anywhere",
+        "dead code",
+        "who (?:calls|uses|imports|owns)",
+        "tell me (?:the|which|what|who|when|where|how many|whether|if)",
+        "what (?:version|date|value|port|url|name)",
+        "(?:every|all|any|which|each) (?:of )?(?:the )?(?:files?|modules?|places?|tests?|functions?|classes) (?:that|which|where) \\w+",
+        "(?:the|these|those|our|worker|sentry|audit|system) (?:\\w+ )?(?:logs?|export|dump)",
+        "(?:most (?:frequent|common|recent)|top (?:\\d+|ten|five|three))",
+        "who (?:last )?(?:modified|changed|touched|wrote|added)",
+        "what port",
+        "which version"
+      ],
+      "adds": {
+        "lookup": 1.5
+      }
+    },
+    {
+      "name": "structured extraction or labeling",
+      "patterns": [
+        "(?:in|into|as|to) (?:a |valid |strict )?(?:json|csv|yaml|xml|a table|tsv)",
+        "structured (?:output|data)",
+        "(?:extract|pull out|pull) (?:the |all )?(?:\\w+ ){0,3}(?:fields?|entit(?:y|ies)|names?|dates?|amounts?|emails?|addresses|numbers?|values|keywords?)",
+        "sentiment",
+        "categor(?:y|ies)",
+        "labels?",
+        "one of:?",
+        "yes or no",
+        "true or false",
+        "json schema",
+        "regex",
+        "intent (?:detection|classification)",
+        "spam",
+        "language detection",
+        "pii (?:detection|redaction)",
+        "for (?:each|every) (?:\\w+ )?(?:item|row|record|ticket|email|review|document|line|entry|message|transaction|name|address|product)",
+        "true (?:or|if)\\b.{0,60}\\bfalse",
+        "map each",
+        "(?:to|into) (?:its|their|the) (?:iso|code|id|category|label)s?",
+        "(?:email addresses|phone numbers|names|dates) (?:from|in|to)",
+        "yyyy-mm-dd",
+        "iso[- ]?\\d+",
+        "into a table of",
+        "one of (?:these|the following) (?:\\w+ )?(?:intents|labels|categories|classes|types)"
+      ],
+      "adds": {
+        "extract": 1.5
+      }
+    },
+    {
+      "name": "small, contained change",
+      "patterns": [
+        "typos?",
+        "one[- ]line\\w*",
+        "single (?:file|function|line|method)",
+        "(?:small|minor|tiny|simple|trivial|quick) (?:change|fix|tweak|edit|update|bug|patch)",
+        "docstrings?",
+        "comments?",
+        "bump (?:the )?version",
+        "lint(?:er|ing)? (?:errors?|warnings?|issues?)",
+        "formatting",
+        "unused (?:imports?|variables?)",
+        "config(?:uration)? value",
+        "(?:according to|per|against|following|matches) (?:the |this |a )?(?:clear )?spec\\w*",
+        "well[- ]scoped",
+        "contained",
+        "add (?:a |one |another )?(?:unit )?test",
+        "null check",
+        "off[- ]by[- ]one",
+        "error message",
+        "log (?:line|statement|message)",
+        "(?:env|environment) var\\w*",
+        "default value",
+        "type (?:hint|annotation)s?",
+        "helper function",
+        "(?:unit )?tests? for (?:the |this |a |that )(?:\\w+ )?(?:function|method|helper|class|component|module|file|hook|endpoint)"
+      ],
+      "adds": {
+        "edit": 1.5
+      }
+    },
+    {
+      "name": "code artifact to write",
+      "patterns": [
+        "(?:write|create|add|generate) (?:a |an |the )?(?:\\w+ ){0,2}(?:function|method|unit test|test case|script|class|module|query|parser|component|hook|migration file|regex|validator|helper|endpoint|handler|cli command|dockerfile|config)"
+      ],
+      "adds": {
+        "edit": 2.0
+      }
+    },
+    {
+      "name": "code refactor into a shared piece",
+      "flag": "mutating",
+      "patterns": [
+        "into (?:a|one|its own|a shared|a separate|a single|a common) (?:\\w+ )?(?:helper|function|module|method|class|component|file|hook|util\\w*|package|library)",
+        "(?:duplicated?|duplicate|repeated|copy-pasted) (?:\\w+ )?(?:code|logic|blocks?)",
+        "dead code (?:removal|cleanup)",
+        "remove (?:the )?dead code"
+      ],
+      "adds": {
+        "edit": 2.5
+      }
+    },
+    {
+      "name": "document for people",
+      "patterns": [
+        "e-?mails?",
+        "memo",
+        "blog posts?",
+        "article",
+        "readme",
+        "documentation",
+        "docs",
+        "release notes",
+        "changelog",
+        "pr description",
+        "pull request description",
+        "commit message",
+        "proposal",
+        "cover letter",
+        "slides?",
+        "deck",
+        "presentation",
+        "spreadsheet",
+        "newsletter",
+        "tweet",
+        "linkedin post",
+        "announcement",
+        "press release",
+        "meeting notes",
+        "status update",
+        "executive summary",
+        "user guide",
+        "tutorial",
+        "faq",
+        "job description",
+        "essay",
+        "report for",
+        "poem",
+        "story",
+        "speech",
+        "toast",
+        "bio",
+        "caption",
+        "tagline",
+        "slogan",
+        "letter"
+      ],
+      "adds": {
+        "write": 1.5
+      }
+    },
+    {
+      "name": "review or investigation",
+      "patterns": [
+        "code review",
+        "(?:review|check) (?:the |this |my |our )?(?:pr|pull request|diff|code|changes|patch|draft|contract|design)",
+        "pros and cons",
+        "root cause",
+        "why (?:is|does|did|are|do|would|might)",
+        "feedback on",
+        "second opinion",
+        "(?:security|quality|accessibility|performance) (?:review|audit)",
+        "sanity[- ]check",
+        "what (?:went|is going) wrong",
+        "compare \\w+",
+        "which (?:is|option|approach|library|one) (?:is )?(?:better|best|should)",
+        "due diligence",
+        "competitive analysis",
+        "data analysis",
+        "analy[sz]e (?:the |this |our )?(?:data|results|numbers|metrics|csv|dataset)",
+        "reviewer",
+        "edge cases?",
+        "severity",
+        "skeptical",
+        "(?:read|go through|look at) (?:the |this )?(?:diff|pr|pull request)",
+        "(?:should we|should i) (?:use|choose|pick|adopt|switch|migrate|go with|build|buy)",
+        "\\w+ (?:vs\\.?|versus) \\w+",
+        "look over",
+        "go over",
+        "take a look at",
+        "what(?:'s| is) (?:weak|missing|unclear)",
+        "(?:is|are|does|do) (?:it|this|these|they|the)(?: \\w+){0,4} (?:correct|right|safe|sound|adequate|good enough|valid|make sense|do what)",
+        "what does (?:this|that|the|it)(?: \\w+){0,5} mean",
+        "(?:looks?|seems?) (?:dangerous|wrong|risky|off|suspicious)",
+        "poke holes",
+        "what did we miss",
+        "(?:more|most) (?:robust|reliable|secure|efficient|maintainable)",
+        "disagrees? with",
+        "(?:does not|doesn't|do not|don't) (?:match|add up|agree)",
+        "before i (?:apply|merge|ship|deploy|send)"
+      ],
+      "adds": {
+        "review": 2.5
+      }
+    },
+    {
+      "name": "bug hunt",
+      "flag": "bug_hunt",
+      "patterns": [
+        "(?:find|finding|look for|spot|hunt for|catch|identify|track down|locate) (?:the |a |an |any |all |some |possible |potential )?(?:\\w+ )?(?:bugs?|issues?|problems?|vulnerabilit\\w+|defects?|mistakes?|risks|gaps|flaws?|leaks?|regressions?)",
+        "what(?:'s| is| went| has gone) (?:wrong|broken)",
+        "why (?:it|this|that|the \\w+) (?:is |are )?(?:fail\\w*|break\\w*|crash\\w*|broken|wrong|slow|hang\\w*)"
+      ],
+      "adds": {
+        "review": 2.5
+      }
+    },
+    {
+      "name": "fix until green",
+      "patterns": [
+        "until (?:they|it|everything|the tests?|all (?:the )?tests?|the build|ci) (?:pass|passes|is green|are green|succeeds?)",
+        "(?:make|get) (?:the |all )?(?:tests?|build|ci) (?:pass|green)",
+        "until green",
+        "re-?run until"
+      ],
+      "adds": {
+        "edit": 1.5
+      },
+      "flag": "checkable"
+    },
+    {
+      "name": "multi-file or feature-sized work",
+      "flag": "multi_file",
+      "patterns": [
+        "(?:multiple|several|many|a few|a dozen|dozens of) (?:files|modules|packages|components|services|repos)",
+        "across (?:the |all |our |multiple |several )?(?:files|modules|packages|components|layers|stack)",
+        "end[- ]to[- ]end",
+        "full[- ]stack",
+        "front-?end and (?:the )?back-?end",
+        "(?:new|whole|complete|full) feature",
+        "(?:with|including|plus) (?:tests|migrations?|docs)(?:,| and)",
+        "api (?:and|plus) (?:ui|frontend|client)",
+        "multi-?file",
+        "implement\\w* (?:a |an |the )?(?:\\w+ ){0,2}feature",
+        "feature (?:request|work|implementation|build)",
+        "every (?:\\w+ )?(?:endpoint|component|handler|screen|controller) (?:under|in|across)"
+      ],
+      "adds": {
+        "build": 1.5
+      }
+    },
+    {
+      "name": "many files or endpoints by count",
+      "flag": "multi_file",
+      "patterns": [
+        "across (?:about |around |roughly |some )?\\d+ (?:files|modules|packages|components|services|endpoints)",
+        "(?:the |about |around |roughly |all |some )?(?:[5-9]|\\d{2,}) (?:\\w+ )?(?:files|endpoints|components|modules|screens|pages|handlers|call sites)"
+      ],
+      "adds": {
+        "build": 2.0
+      }
+    },
+    {
+      "name": "back-end layer",
+      "flag": "layer_backend",
+      "patterns": [
+        "back-?end",
+        "server[- ]side",
+        "api (?:endpoint|route)s?",
+        "endpoints?",
+        "database (?:table|schema)",
+        "(?:new )?(?:db|database) table",
+        "migrations?",
+        "background job",
+        "webhooks?",
+        "queue"
+      ],
+      "adds": {},
+      "quiet": true
+    },
+    {
+      "name": "front-end layer",
+      "flag": "layer_frontend",
+      "patterns": [
+        "front-?end",
+        "client[- ]side",
+        "(?:react|vue|svelte|angular) (?:\\w+ )?(?:component|page)",
+        "(?:a |the |new )?(?:\\w+ )?(?:button|form|modal|screen|page|dropdown|inbox|ui)",
+        "ui",
+        "ux"
+      ],
+      "adds": {},
+      "quiet": true
+    },
+    {
+      "name": "list of three or more deliverables",
+      "flag": "deliverables",
+      "patterns": [
+        ":\\s*[^.:;\\n]{3,60},\\s*[^.:;\\n]{3,60},?\\s+and\\s+[^.:;\\n]{3,60}"
+      ],
+      "adds": {},
+      "no_boundary": true,
+      "quiet": true
+    },
+    {
+      "name": "hard-to-reproduce or concurrency bug",
+      "flag": "tricky",
+      "patterns": [
+        "race conditions?",
+        "deadlocks?",
+        "memory leaks?",
+        "flaky",
+        "flak(?:es|iness)",
+        "intermittent\\w*",
+        "heisenbug",
+        "segfaults?",
+        "segmentation fault",
+        "concurren\\w+",
+        "thread[- ]safe\\w*",
+        "non-?deterministic\\w*",
+        "(?:can't|cannot|can not|unable to|hard to|difficult to) reproduce",
+        "only (?:happens|fails|occurs) (?:in|on|under|when|sometimes)",
+        "sometimes fails",
+        "tricky",
+        "subtle bug",
+        "data corruption",
+        "timing[- ]dependent",
+        "under load",
+        "no (?:reliable )?repro\\w*",
+        "occasionally",
+        "rare(?:ly)?",
+        "once in a while",
+        "sporadic\\w*",
+        "randomly",
+        "every few (?:minutes|hours|days)",
+        "oom(?:-killed| killed)?",
+        "out of memory",
+        "memory (?:grows|growth|keeps growing|usage (?:grows|climbs|keeps))",
+        "double[- ]charg\\w+",
+        "duplicate (?:charges?|writes?|events?|messages?)",
+        "times? out and (?:we )?retr\\w+",
+        "idempoten\\w+"
+      ],
+      "adds": {
+        "build": 2.0
+      }
+    },
+    {
+      "name": "performance work",
+      "patterns": [
+        "performance (?:regression|problem|issue|bottleneck|tuning)",
+        "latency regression",
+        "throughput",
+        "profil(?:e|ing|er)",
+        "bottlenecks?",
+        "(?:too|very|really|so) slow",
+        "speed up",
+        "n\\+1",
+        "query plan",
+        "hot path",
+        "p9[59]",
+        "regress(?:ed|ion|ions|es)?",
+        "(?:startup|start-up|load|response|build|query|render|boot) times?",
+        "slow(?:er|ed)?(?: down)?",
+        "from \\d+(?:\\.\\d+)? ?m?s(?:ec)? to \\d+(?:\\.\\d+)? ?m?s(?:ec)?"
+      ],
+      "adds": {
+        "build": 1.5
+      }
+    },
+    {
+      "name": "debugging",
+      "patterns": [
+        "debug\\w*",
+        "(?:failing|broken|crashing|hanging|erroring) (?:in|on|with|when|after|test|build|job)",
+        "(?:crash|hang|exception|regression)e?s?"
+      ],
+      "adds": {
+        "build": 1.0,
+        "review": 0.5
+      }
+    },
+    {
+      "name": "computer use",
+      "flag": "computer_use",
+      "patterns": [
+        "computer use",
+        "browser automation",
+        "click through",
+        "(?:use|drive|operate|control) (?:the |a )?(?:browser|gui|desktop|ui)",
+        "fill (?:in |out )?(?:the |a )?(?:web )?form",
+        "click(?:ing)? through",
+        "(?:by|via) (?:clicking|navigating)",
+        "in (?:the|a) browser",
+        "(?:log|sign)(?:ging)? in(?:to)? (?:the |our )?(?:\\w+ )?(?:site|portal|dashboard|admin panel|console)"
+      ],
+      "adds": {
+        "build": 2.0
+      }
+    },
+    {
+      "name": "vision input",
+      "flag": "vision",
+      "patterns": [
+        "screenshots?",
+        "mock-?ups?",
+        "figma",
+        "(?:from|in|of) (?:the |this |an |these )?(?:image|photo|picture|scan|diagram|chart)s?",
+        "scanned (?:pdf|document)s?",
+        "ocr",
+        "wireframes?",
+        "handwrit\\w+",
+        "scanned \\w+",
+        "(?:invoice|receipt|document|product|attached|uploaded|these|this|the|each) (?:images?|photos?|pictures?|scans?)"
+      ],
+      "adds": {
+        "build": 0.5
+      }
+    },
+    {
+      "name": "architecture or system design",
+      "patterns": [
+        "architectur\\w+",
+        "system design",
+        "design docs?",
+        "rfc",
+        "adr",
+        "(?:schema|database|data model|api|interface|protocol) design",
+        "data model",
+        "threat model\\w*",
+        "scalab\\w+",
+        "(?:technical |engineering )?(?:roadmap|strategy)",
+        "trade-?offs?",
+        "re-?architect\\w*",
+        "re-?design\\w*",
+        "(?:service|module|domain) boundar(?:y|ies)",
+        "event[- ]driven",
+        "micro-?services?",
+        "monolith",
+        "multi-?tenan\\w+",
+        "high availability",
+        "disaster recovery",
+        "capacity planning",
+        "build vs\\.? buy",
+        "tech(?:nology)? stack"
+      ],
+      "adds": {
+        "design": 1.5
+      }
+    },
+    {
+      "name": "migration or major refactor",
+      "flag": "major",
+      "patterns": [
+        "migration (?:plan|strategy|path)",
+        "migrat(?:e|ing|ion) (?:from|to|the|our|off|away|of)",
+        "(?:major|large[- ]scale|big|sweeping|massive|codebase[- ]wide) (?:refactor\\w*|rewrite|restructur\\w+|overhaul|cleanup)",
+        "rewrite (?:the |our )?(?:entire|whole|codebase|system|service|app|backend|frontend)",
+        "(?:entire|whole) (?:codebase|system|monorepo|repo|repository|application|app|backend|platform)",
+        "across (?:the |our )?(?:entire |whole )?(?:codebase|monorepo|repo|organization|org)",
+        "all (?:\\d+ )?(?:services|microservices|repos|packages|modules)",
+        "upgrade (?:from|to) \\w+ ?\\d",
+        "python ?2 to (?:python ?)?3",
+        "(?:legacy|strangler)",
+        "breaking changes?",
+        "backwards?[- ]compatib\\w+",
+        "(?:framework|database|db|language|cloud|platform|version|api|schema|data|infra\\w*) migration(?! (?:script|file|step)s?)",
+        "every (?:service|repo|package|microservice|team|app) (?:that|which|in|across)",
+        "over the next (?:two|three|few|\\d+) (?:quarters|months|years)",
+        "target architecture",
+        "from \\d+[mbk]? to \\d+[mbk]? (?:rows|users|requests|tenants)"
+      ],
+      "adds": {
+        "design": 2.0
+      }
+    },
+    {
+      "name": "deep research",
+      "patterns": [
+        "deep research",
+        "(?:comprehensive|exhaustive|in-?depth|multi-?step|extensive) (?:research|analysis|report|study|investigation|review of the literature)",
+        "literature review",
+        "state of the art",
+        "survey of (?:the )?(?:field|literature|research)",
+        "market (?:research|landscape|sizing)",
+        "research report",
+        "white ?paper",
+        "cite (?:sources|papers)",
+        "primary sources",
+        "synthesi[sz]e (?:\\w+ ){0,3}(?:sources|papers|findings|studies)",
+        "across (?:many|multiple|several|a range of) sources",
+        "(?:detailed|long|full|thorough) report with (?:references|citations|sources)",
+        "with (?:references|citations|footnotes)",
+        "multi-?source"
+      ],
+      "adds": {
+        "research": 2.5
+      }
+    },
+    {
+      "name": "hardest reasoning",
+      "patterns": [
+        "proofs?(?! of concept)(?!-of-concept)",
+        "prove",
+        "theorems?",
+        "lemma",
+        "formal(?:ly)? (?:verif\\w+|proof|proving|methods?)",
+        "novel (?:algorithm|approach|method|technique)",
+        "from first principles",
+        "open problem",
+        "unsolved",
+        "research[- ]grade",
+        "phd[- ]level",
+        "hardest",
+        "(?:extremely|exceptionally) (?:hard|difficult|subtle)",
+        "(?:nobody|no one) (?:has|could|can)",
+        "(?:previous|earlier|prior|other|two|three|several|multiple) (?:attempts?|models?|agents?) (?:have |has |already )*failed",
+        "(?:agents?|models?|attempts?) have (?:already )?failed",
+        "still failing after",
+        "rigorous(?:ly)? (?:establish|show|prove|demonstrate|argue)\\w*",
+        "(?:establish|show|demonstrate) rigorously",
+        "(?:a |with a )?proof or (?:a )?counter-?example",
+        "counter-?examples?"
+      ],
+      "adds": {
+        "frontier": 3.0
+      }
+    },
+    {
+      "name": "quantitative or scientific work",
+      "patterns": [
+        "deriv(?:e|ation)",
+        "(?:scientific|quantitative|statistical|econometric|actuarial) (?:analysis|model\\w*|reasoning|computing)",
+        "monte carlo",
+        "bayesian",
+        "stochastic",
+        "closed[- ]form",
+        "(?:np-?hard|combinatorial optimi[sz]ation|constraint solv\\w+)",
+        "numerical (?:stability|instability|methods?|simulation)",
+        "cryptograph\\w+ (?:protocol|proof|scheme)",
+        "(?:very|really) (?:hard|difficult|complex|subtle)"
+      ],
+      "adds": {
+        "frontier": 1.5,
+        "review": 0.5
+      }
+    },
+    {
+      "name": "leading other agents",
+      "patterns": [
+        "(?:orchestrat\\w+|coordinat\\w+|lead\\w*|manag\\w+|dispatch\\w*|supervis\\w+) (?:a team of |a fleet of |multiple |many |several |parallel |the )?(?:sub-?agents|agents|workers)",
+        "(?:fan|farm) (?:out|it out)",
+        "agent team"
+      ],
+      "adds": {
+        "research": 2.0
+      }
+    },
+    {
+      "name": "long unattended run",
+      "flag": "long_horizon",
+      "patterns": [
+        "(?:run|work|operate|keep going|continue) (?:\\w+ )?(?:autonomously|unattended|on your own|without (?:supervision|checking in|asking))",
+        "overnight",
+        "for (?:several |many |a few |\\d+ )?hours",
+        "multi-?hour",
+        "long[- ]running",
+        "long[- ]horizon",
+        "unattended",
+        "until (?:it's|it is|everything is|all (?:of )?it is) (?:done|finished|complete|green)",
+        "while i(?:'m| am) (?:away|asleep|out)"
+      ],
+      "adds": {
+        "build": 1.0
+      }
+    },
+    {
+      "name": "conversational question",
+      "patterns": [
+        "^(?:what|who|when|where|which|why|how|is|are|does|do|did|can|could|should|would|will)\\b[^\\n]{0,160}\\?\\s*$",
+        "^(?:hi|hello|hey|thanks|thank you|good (?:morning|afternoon|evening|night)|cheers|bye)\\b"
+      ],
+      "adds": {
+        "chat": 2.5
+      },
+      "no_boundary": true
+    },
+    {
+      "name": "live conversation",
+      "patterns": [
+        "customer (?:questions|support|service|chat)",
+        "live chat",
+        "chat ?bot",
+        "chat widget",
+        "conversational (?:assistant|agent|ui)",
+        "small talk",
+        "greet\\w*"
+      ],
+      "adds": {
+        "chat": 2.5
+      }
+    },
+    {
+      "name": "codebase context",
+      "patterns": [
+        "codebase",
+        "repo(?:sitory)?",
+        "monorepo",
+        "source (?:code|tree|files?)",
+        "in (?:this|the|our) (?:project|code)",
+        "\\w+\\.(?:py|js|jsx|ts|tsx|go|rs|java|rb|php|c|cc|cpp|h|cs|kt|swift|sql|sh|yaml|yml|toml|json|md|html|css|vue|scala)",
+        "src/",
+        "defined",
+        "(?:this|the|our) branch"
+      ],
+      "adds": {},
+      "flag": "code_context",
+      "raw": true,
+      "quiet": true
+    },
+    {
+      "name": "high stakes",
+      "flag": "stakes",
+      "patterns": [
+        "production",
+        "prod",
+        "live (?:system|database|db|traffic|site|customers?)",
+        "customer data",
+        "user data",
+        "pii",
+        "payments?",
+        "billing",
+        "invoic\\w+",
+        "ledger",
+        "money",
+        "financial",
+        "banking",
+        "security",
+        "vulnerab\\w+",
+        "authenticat\\w+",
+        "authoriz\\w+",
+        "auth",
+        "credentials?",
+        "secrets?",
+        "api keys?",
+        "encrypt\\w+",
+        "compliance",
+        "gdpr",
+        "hipaa",
+        "pci",
+        "legal",
+        "contract",
+        "medical",
+        "clinical",
+        "irreversibl\\w+",
+        "data loss",
+        "destructive",
+        "drop (?:table|database|column)",
+        "delete (?:\\w+ ){0,3}(?:database|bucket|records|rows|users|accounts)",
+        "rollback",
+        "incident",
+        "outage",
+        "safety[- ]critical"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "has a pass/fail check",
+      "flag": "checkable",
+      "patterns": [
+        "(?:until|so that|make|get|ensure) (?:the |all |every )?(?:\\w+ )?tests? (?:pass|passes|passing|green)",
+        "tests? (?:must|should|need to) pass",
+        "run (?:the |all )?tests",
+        "test suite",
+        "verifier",
+        "validator",
+        "validat(?:e|es|ed) against",
+        "json schema",
+        "type-?checks?",
+        "compiles?",
+        "lint passes",
+        "ci (?:passes|is green|green)",
+        "assert\\w*",
+        "expected output",
+        "golden (?:file|output|set)",
+        "exact match",
+        "acceptance criteria",
+        "checkable",
+        "pass/fail"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "high volume",
+      "flag": "volume",
+      "patterns": [
+        "\\d{1,3}(?:,\\d{3})+ \\w+",
+        "\\d{3,} (?:\\w+ ){0,2}(?:items|rows|records|tickets|emails|documents|files|reviews|messages|transactions|entries|lines|products|users|calls|requests|comments|pages)",
+        "thousands of",
+        "hundreds of",
+        "millions of",
+        "bulk",
+        "batch(?:es)?",
+        "high[- ]volume",
+        "at scale",
+        "each of the \\d+",
+        "per (?:day|hour|minute|second)",
+        "every (?:incoming|new) \\w+"
+      ],
+      "adds": {
+        "extract": 0.5
+      }
+    },
+    {
+      "name": "latency sensitive",
+      "flag": "latency",
+      "patterns": [
+        "real[- ]?time",
+        "low[- ]latency",
+        "interactive",
+        "(?:user|customer|person) is waiting",
+        "live chat",
+        "autocomplete",
+        "sub-?second",
+        "(?:quick|fast|snappy) (?:answer|reply|response)",
+        "voice (?:assistant|agent|bot)",
+        "typing indicator",
+        "chat ?bot",
+        "instant(?:ly)? (?:answer|reply|response|feedback|result)s?",
+        "respond instantly"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "asks for extra care",
+      "flag": "effort_up",
+      "patterns": [
+        "careful(?:ly)?",
+        "thorough(?:ly)?",
+        "very thorough",
+        "think (?:hard|deeply|carefully|step by step)",
+        "ultrathink",
+        "double[- ]check",
+        "triple[- ]check",
+        "rigorous(?:ly)?",
+        "meticulous(?:ly)?",
+        "exhaustive(?:ly)?",
+        "(?:don't|do not) miss",
+        "leave no stone",
+        "be (?:extra |very )?(?:careful|precise|thorough)",
+        "high[- ]confidence",
+        "mission[- ]critical"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "asks for speed",
+      "flag": "effort_down",
+      "patterns": [
+        "quick(?:ly)?",
+        "brief(?:ly)?",
+        "rough(?:ly)?",
+        "skim",
+        "at a glance",
+        "just a sketch",
+        "ballpark",
+        "(?:don't|do not) overthink",
+        "first pass",
+        "good enough",
+        "quick and dirty",
+        "tl;?dr",
+        "one[- ]liner",
+        "short answer",
+        "in a sentence"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "judgment call",
+      "flag": "judgment",
+      "patterns": [
+        "judg(?:e|ment|ement)",
+        "subtle",
+        "nuanc\\w+",
+        "taste",
+        "should we",
+        "is it worth",
+        "which (?:is|option|approach) (?:is )?(?:better|best)",
+        "your (?:opinion|call|view)",
+        "ethical",
+        "judgment call",
+        "gray area",
+        "grey area",
+        "case[- ]by[- ]case"
+      ],
+      "adds": {}
+    },
+    {
+      "name": "vague or open-ended",
+      "flag": "ambiguous",
+      "patterns": [
+        "figure out",
+        "not sure (?:what|why|how|where|if)",
+        "somehow",
+        "something(?:'s| is| seems| looks) (?:wrong|off|broken|weird|strange)",
+        "no idea",
+        "(?:don't|do not) know (?:what|why|how|where)",
+        "whatever (?:it takes|is needed|you think)",
+        "open[- ]ended",
+        "use your (?:best )?judg(?:e)?ment",
+        "mysterious(?:ly)?",
+        "weird(?:ly)?",
+        "strange(?:ly)?",
+        "(?:the |this )?(?:brief|task|request|ticket) is (?:unclear|vague|ambiguous|underspecified)",
+        "whatever (?:is|seems) (?:broken|wrong)"
+      ],
+      "adds": {}
+    }
+  ],
+  "agent_type_priors": [
+    {
+      "match": "^Explore$",
+      "adds": {
+        "lookup": 2.5
+      },
+      "flag": "read_only"
+    },
+    {
+      "match": "^Plan$",
+      "adds": {
+        "design": 2.5
+      }
+    },
+    {
+      "match": "review|audit|critic",
+      "adds": {
+        "review": 1.5
+      }
+    },
+    {
+      "match": "test|runner|qa",
+      "adds": {
+        "lookup": 1.0
+      }
+    },
+    {
+      "match": "debug",
+      "adds": {
+        "build": 1.5
+      }
+    },
+    {
+      "match": "architect|planner|design",
+      "adds": {
+        "design": 2.0
+      }
+    },
+    {
+      "match": "doc|writer|scribe",
+      "adds": {
+        "write": 1.5
+      }
+    },
+    {
+      "match": "search|research|explor|scout|find|lookup",
+      "adds": {
+        "lookup": 1.5
+      }
+    },
+    {
+      "match": "classif|extract|tagger|sorter|triage",
+      "adds": {
+        "extract": 1.5
+      }
+    }
+  ],
+  "session_advice": {
+    "lookup": [
+      "sonnet",
+      "medium"
+    ],
+    "extract": [
+      "sonnet",
+      "medium"
+    ],
+    "edit": [
+      "sonnet",
+      "medium"
+    ],
+    "write": [
+      "sonnet",
+      "medium"
+    ],
+    "review": [
+      "sonnet",
+      "high"
+    ],
+    "chat": [
+      "sonnet",
+      "low"
+    ],
+    "build": [
+      "opus",
+      "medium"
+    ],
+    "unsure": [
+      "opus",
+      "medium"
+    ],
+    "design": [
+      "opus",
+      "high"
+    ],
+    "frontier": [
+      "fable",
+      "high"
+    ],
+    "research": [
+      "opus",
+      "high"
+    ]
+  }
+}
