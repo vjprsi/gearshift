@@ -10,6 +10,7 @@ from tests.helpers import ROOT
 
 from gearshift.claude_code import decide_agent_call
 from gearshift.config import DEFAULTS
+from gearshift.outcomes import HINT
 
 LAUNCHER = os.path.join(ROOT, "bin", "gearshift.py")
 SH_LAUNCHER = os.path.join(ROOT, "bin", "gearshift")
@@ -213,7 +214,12 @@ class HookProcess(unittest.TestCase):
         hs = out["hookSpecificOutput"]
         self.assertEqual(hs["hookEventName"], "PreToolUse")
         self.assertEqual(hs["permissionDecision"], "allow")
-        self.assertEqual(hs["updatedInput"], dict(LOOKUP, model="haiku", effort="medium"))
+        want = dict(LOOKUP, model="haiku", effort="medium")
+        want["prompt"] = LOOKUP["prompt"] + "\n\n" + HINT     # routed down, so it gets the escalate hint
+        self.assertEqual(hs["updatedInput"], want)
+        p = self.pre(LOOKUP, GEARSHIFT_HINT="0")
+        self.assertEqual(json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"],
+                         dict(LOOKUP, model="haiku", effort="medium"))
         self.assertIn("haiku@medium", out["systemMessage"])
         ev = [e for e in self.events() if e["ev"] == "route"][0]
         self.assertEqual((ev["action"], ev["class"], ev["session_tier"]), ("filled", "lookup", "opus"))
@@ -289,6 +295,85 @@ class HookProcess(unittest.TestCase):
         p = self.pre(LOOKUP, GEARSHIFT_INSIDE_JUDGE="1")
         self.assertEqual((p.returncode, p.stdout), (0, ""))
         self.assertEqual(self.events(), [])
+
+    def post(self, text, tool_use_id="tu1", status="completed", **env):
+        return self.hook("post-agent", {
+            "session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp, "tool_name": "Agent",
+            "tool_use_id": tool_use_id, "tool_input": {},
+            "tool_response": {"status": status, "agentId": "a-" + tool_use_id,
+                              "content": [{"type": "text", "text": text}]}}, env=env)
+
+    def test_escalate_is_recorded_and_the_orchestrator_is_told(self):
+        self.pre(LOOKUP)
+        p = self.post("ESCALATE: the handlers are generated at runtime, grep is not enough")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        ctx = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("haiku@medium", ctx)
+        self.assertIn("model=haiku, effort=high", ctx)
+        done = [e for e in self.events() if e["ev"] == "done"][-1]
+        self.assertTrue(done["escalated"])
+        self.assertIn("generated at runtime", done["escalate_reason"])
+
+    def test_a_normal_answer_is_not_an_escalation(self):
+        self.pre(LOOKUP)
+        p = self.post("Found 14 endpoints. We may need to escalate: see notes.")
+        self.assertEqual(p.stdout, "")
+        self.assertNotIn("escalated", [e for e in self.events() if e["ev"] == "done"][-1])
+
+    def test_same_task_again_starts_one_rung_up(self):
+        self.pre(LOOKUP)
+        self.post("ESCALATE: could not find them")
+        again = dict(LOOKUP, prompt=LOOKUP["prompt"] + " Look harder, including generated routes.")
+        p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp,
+                                    "tool_name": "Agent", "tool_use_id": "tu2", "tool_input": again})
+        out = json.loads(p.stdout)
+        self.assertEqual((out["hookSpecificOutput"]["updatedInput"]["model"],
+                          out["hookSpecificOutput"]["updatedInput"]["effort"]), ("haiku", "high"))
+        self.assertIn("fell short on haiku@medium", out["systemMessage"])
+        ev = [e for e in self.events() if e["ev"] == "route"][-1]
+        self.assertEqual((ev["retry_of"], ev["attempt"], ev["bumped_from"]), ("tu1", 2, "haiku@medium"))
+        # and again: haiku@high failed too, so now it is sonnet
+        self.post("ESCALATE: still nothing", tool_use_id="tu2")
+        p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp,
+                                    "tool_name": "Agent", "tool_use_id": "tu3", "tool_input": again})
+        self.assertEqual(json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"]["model"], "sonnet")
+
+    def test_repeat_without_a_failure_is_routed_as_usual(self):
+        self.pre(LOOKUP)
+        self.post("Found 14 endpoints.")
+        p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp,
+                                    "tool_name": "Agent", "tool_use_id": "tu2", "tool_input": LOOKUP})
+        up = json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual((up["model"], up["effort"]), ("haiku", "medium"))
+
+    def test_retry_never_climbs_past_the_session_model(self):
+        with open(self.transcript, "w") as f:      # a Sonnet session this time
+            f.write(json.dumps({"type": "assistant", "version": "2.1.322",
+                                "message": {"id": "m1", "model": "claude-sonnet-5-5",
+                                            "usage": {"input_tokens": 10, "output_tokens": 5}}}) + "\n")
+        edit = {"subagent_type": "general-purpose", "description": "Fix typo",
+                "prompt": "Fix the typo in the error message in login.py."}
+        self.pre(edit)
+        p = self.post("ESCALATE: the message is built in three places")
+        self.assertIn("model=sonnet, effort=high", json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"])
+        p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp,
+                                    "tool_name": "Agent", "tool_use_id": "tu2", "tool_input": edit})
+        up = json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"]
+        self.assertEqual((up.get("model"), up["effort"]), (None, "high"))    # stays on the session model
+        # sonnet@high was the top of a Sonnet session: nothing left to climb to
+        p = self.post("ESCALATE: still wrong", tool_use_id="tu2")
+        self.assertIn("main session", json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"])
+        p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp,
+                                    "tool_name": "Agent", "tool_use_id": "tu3", "tool_input": edit})
+        if p.stdout:
+            self.assertNotIn(json.loads(p.stdout)["hookSpecificOutput"]["updatedInput"].get("model"),
+                             ("opus", "fable"))
+
+    def test_shadow_mode_records_outcomes_but_says_nothing(self):
+        self.pre(LOOKUP, GEARSHIFT_MODE="shadow")
+        p = self.post("ESCALATE: too hard", GEARSHIFT_MODE="shadow")
+        self.assertEqual(p.stdout, "")
+        self.assertTrue([e for e in self.events() if e["ev"] == "done"][-1]["escalated"])
 
     def test_task_alias_matches_too(self):
         p = self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "tool_name": "Task",

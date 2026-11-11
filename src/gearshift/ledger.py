@@ -177,6 +177,7 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
     if session:
         events = [e for e in events if e.get("session") == session]
     routes = [e for e in events if e.get("ev") == "route"]
+    dones = [e for e in events if e.get("ev") == "done"]
     usages: Dict[str, Dict[str, Any]] = {}
     for e in events:
         if e.get("ev") == "usage" and e.get("agent_id"):
@@ -231,6 +232,12 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
         "spend_usd": round(spend, 4),
         "same_tokens_at_session_rates_usd": round(counter, 4) if (counter_known and usages) else None,
         "unpriced_models": sorted(unpriced),
+        "outcomes": {
+            "finished": len(dones),
+            "escalated": sum(1 for e in dones if e.get("escalated")),
+            "failed": sum(1 for e in dones if e.get("failed")),
+            "retries": sum(1 for r in routes if r.get("bumped_from")),
+        },
     }
 
 
@@ -262,6 +269,10 @@ def format_report(rep: Dict[str, Any]) -> str:
     if rep["classes"]:
         top = sorted(rep["classes"].items(), key=lambda kv: -kv[1])
         lines.append("  by task class: " + ", ".join("%s %d" % kv for kv in top))
+    oc = rep.get("outcomes") or {}
+    if oc.get("finished"):
+        lines.append("  outcomes: %d finished, %d asked to escalate, %d errored, %d re-sent after falling short" % (
+            oc["finished"], oc["escalated"], oc["failed"], oc["retries"]))
     lines.append("")
     lines.append("Subagent runs measured: %d" % rep["subagents_measured"])
     for tier in ("haiku", "sonnet", "opus", "fable"):

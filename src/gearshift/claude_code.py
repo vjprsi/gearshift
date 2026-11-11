@@ -28,9 +28,9 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
-from . import ledger
+from . import ledger, outcomes
 from .config import effective_ceiling, load_config, state_dir
-from .policy import load_policy, tier_rank
+from .policy import EFFORTS, TIERS, load_policy, tier_rank
 from .pricing import price_table, tier_of
 from .router import Router
 
@@ -210,9 +210,13 @@ def on_session_start(inp: Mapping[str, Any]) -> Optional[dict]:
 
 def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
                       session_tier: Optional[str], version: Optional[str],
-                      project_dir: Optional[str], router: Optional[Router] = None) -> Dict[str, Any]:
+                      project_dir: Optional[str], router: Optional[Router] = None,
+                      retry_from: Optional[Tuple[str, str]] = None) -> Dict[str, Any]:
     """Pure decision logic for one Agent call. Returns a record with
-    action and, when something changes, updated (the full new input)."""
+    action and, when something changes, updated (the full new input).
+
+    retry_from is the (tier, effort) an earlier run of the same task fell
+    short on. When set, this run starts at least one rung above it."""
     router = router or _router(cfg, with_judge=True)
     agent_type = str(tool_input.get("subagent_type") or "general-purpose")
     desc = str(tool_input.get("description") or "")
@@ -237,8 +241,23 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
         rec["action"] = "pinned"
         return rec
 
+    bumped = None
+    if retry_from and not have_model:
+        bumped = outcomes.next_rung(retry_from[0], retry_from[1], router.policy)
+    force_effort = None
+    if bumped:
+        # outcome beats guesswork: it already failed one rung down
+        cap0 = effective_ceiling(cfg, session_tier)
+        floor = bumped[0] if not cap0 or tier_rank(bumped[0]) <= tier_rank(cap0) else cap0
+        d = router.route(prompt, description=desc or None, agent_type=agent_type,
+                         platform="claude-code", floor=floor)
+        if d.tier == bumped[0] and EFFORTS.index(d.effort) < EFFORTS.index(bumped[1]):
+            force_effort = bumped[1]
+        rec["bumped_from"] = "%s@%s" % retry_from
+        rec["want_tier"], rec["want_effort"], rec["decision"] = d.tier, force_effort or d.effort, d
+
     act = router.policy.thresholds.get("act_confidence", 0.55)
-    if d.task_class == "unsure" or d.confidence < act:
+    if not bumped and (d.task_class == "unsure" or d.confidence < act):
         rec["action"] = "low-confidence"
         return rec
 
@@ -252,7 +271,7 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
         d = router.route(prompt, description=desc or None, agent_type=agent_type,
                          platform="claude-code", ceiling=cap)
         rec["capped_from"], rec["decision"] = rec["want_tier"], d
-    want_tier, want_effort = d.tier, d.effort
+    want_tier, want_effort = d.tier, force_effort or d.effort
 
     strict = cfg["mode"] == "strict"
     new_model = have_model
@@ -308,13 +327,36 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     if cfg["mode"] == "off":
         return None
     facts = _session_facts(inp)
+    sid = str(inp.get("session_id") or "")
+    desc = str(tool_input.get("description") or "")
+    fp = outcomes.fingerprint(desc + "\n" + str(tool_input.get("prompt") or ""))
+    st = load_session(sid)
+    tasks = st.get("tasks") if isinstance(st.get("tasks"), list) else []
+    prior = outcomes.find_prior(tasks, fp, desc)
+    retry_from = None
+    if prior and prior.get("short") and prior.get("tier"):
+        retry_from = (prior["tier"], prior.get("effort") or "medium")
     rec = decide_agent_call(tool_input, cfg=cfg, session_tier=facts["tier"],
-                            version=facts["version"], project_dir=project_dir)
+                            version=facts["version"], project_dir=project_dir, retry_from=retry_from)
     rec.pop("decision")
     updated = rec.pop("updated")
+    if updated is not None and cfg.get("hint") and rec["action"] in ("filled", "overrode") \
+            and outcomes.HINT not in str(updated.get("prompt") or ""):
+        # a cheaper model than the one that asked: give it a way to say "too hard for me"
+        updated["prompt"] = str(updated.get("prompt") or "").rstrip() + "\n\n" + outcomes.HINT
+        rec["hint"] = True
     event = {"ev": "route", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
-             "mode": cfg["mode"], "desc": str(tool_input.get("description") or "")[:80]}
+             "mode": cfg["mode"], "desc": desc[:80]}
+    if prior:
+        event["retry_of"] = prior.get("id")
+        event["attempt"] = int(prior.get("attempt") or 1) + 1
     event.update(rec)
+    ran_tier = rec["model"] if rec["model"] in TIERS else (tier_of(str(rec["model"])) if rec["model"] else facts["tier"])
+    tasks.append({"id": inp.get("tool_use_id"), "fp": fp, "desc": desc[:80], "tier": ran_tier,
+                  "effort": rec["effort"] or rec.get("want_effort"), "class": rec["class"],
+                  "attempt": event.get("attempt", 1), "short": False})
+    st["tasks"] = tasks[-outcomes.MAX_TASKS:]
+    save_session(sid, st)
     ledger.append_event(state_dir(), event)
     _debug("route %s" % json.dumps(event, default=str))
     if updated is None:
@@ -322,6 +364,9 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     label = "%s%s" % (rec["model"] or (rec.get("session_tier") or "session model"),
                       ("@" + rec["effort"]) if rec["effort"] else "")
     why = "gearshift: %s -> %s (%s, confidence %.2f)" % (rec["agent_type"], label, rec["class"], rec["confidence"])
+    if rec.get("bumped_from"):
+        why = "gearshift: %s -> %s (same task fell short on %s, so one step up)" % (
+            rec["agent_type"], label, rec["bumped_from"])
     out: Dict[str, Any] = {"hookEventName": "PreToolUse", "updatedInput": updated,
                            "additionalContext": why + ". Pass model explicitly on an Agent call to override."}
     if cfg["permission"] in ("allow", "ask"):
@@ -339,13 +384,45 @@ def on_post_agent(inp: Mapping[str, Any]) -> Optional[dict]:
     resp = inp.get("tool_response")
     if not isinstance(resp, dict):
         return None
-    ledger.append_event(state_dir(), {
+    reason = outcomes.escalation_in(resp)
+    failed = outcomes.failed_status(resp)
+    event = {
         "ev": "done", "session": inp.get("session_id"), "tool_use_id": inp.get("tool_use_id"),
         "agent_id": resp.get("agentId"), "status": resp.get("status"),
         "resolved_model": resp.get("resolvedModel"), "duration_ms": resp.get("totalDurationMs"),
         "tool_uses": resp.get("totalToolUseCount"),
-    })
-    return None
+    }
+    if reason:
+        event["escalated"], event["escalate_reason"] = True, reason
+    if failed:
+        event["failed"] = True
+    ledger.append_event(state_dir(), event)
+    if not (reason or failed):
+        return None
+
+    # remember it, so the same task sent again starts one rung up
+    sid = str(inp.get("session_id") or "")
+    st = load_session(sid)
+    task = None
+    for t in st.get("tasks") or []:
+        if t.get("id") == inp.get("tool_use_id"):
+            t["short"] = True
+            task = t
+    if task is None:
+        return None
+    save_session(sid, st)
+    cfg = load_config(os.environ.get("CLAUDE_PROJECT_DIR") or inp.get("cwd"))
+    if cfg["mode"] in ("off", "shadow") or not cfg["advise"] or not reason or not task.get("tier"):
+        return None
+    ran = "%s@%s" % (task["tier"], task.get("effort") or "default effort")
+    cap = effective_ceiling(cfg, _session_facts(inp)["tier"])
+    up = outcomes.next_rung(task["tier"], task.get("effort") or "medium", load_policy(cfg.get("policy") or None), cap)
+    if up:
+        advice = "Re-run it one step up: model=%s, effort=%s." % up
+    else:
+        advice = "There is no step above it within your ceiling, so take this one in the main session."
+    return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext":
+            "gearshift: this subagent ran on %s and asked to escalate (%s). %s" % (ran, reason, advice)}}
 
 
 def on_subagent_stop(inp: Mapping[str, Any]) -> Optional[dict]:

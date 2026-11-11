@@ -20,6 +20,8 @@ make my subagents more expensive.
   brief       short routing brief in context at session start (default on)
   explore     route (default) | leave - whether to touch the built-in Explore agent
   permission  allow (default) | ask | none - permissionDecision sent with a rewritten call
+  hint        true (default) | false - when the hook moves a call to a cheaper model, add one
+              line to its prompt telling it to answer ESCALATE: if the task is beyond it
   judge       auto (default) | off | api | claude
               LLM second opinion when the keyword rules aren't confident.
               auto = api if GEARSHIFT_API_KEY or ANTHROPIC_API_KEY is set, otherwise off.
@@ -46,6 +48,7 @@ DEFAULTS: Dict[str, Any] = {
     "explore": "route",
     "permission": "allow",
     "judge": "auto",
+    "hint": True,
     "project_cap": None,
     "policy": None,
 }
@@ -58,7 +61,7 @@ _CHOICES = {
     "permission": ("allow", "ask", "none"),
     "judge": ("auto", "off", "api", "claude"),
 }
-_BOOLS = ("announce", "advise", "brief")
+_BOOLS = ("announce", "advise", "brief", "hint")
 
 
 def _as_bool(v: Any) -> Optional[bool]:

@@ -107,6 +107,15 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tune(args: argparse.Namespace) -> int:
+    from .config import state_dir
+    from .outcomes import build_tune, format_tune
+    t = build_tune(state_dir(), days=None if args.all else args.days, min_runs=args.min_runs,
+                   raise_at=args.raise_at)
+    print(json.dumps(t, indent=2) if args.json else format_tune(t))
+    return 0
+
+
 def cmd_eval(args: argparse.Namespace) -> int:
     from .evalset import evaluate
     r = evaluate(args.path, _router_for(args))
@@ -262,6 +271,14 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--session")
     rp.add_argument("--json", action="store_true")
     rp.set_defaults(fn=cmd_report)
+
+    tu = sub.add_parser("tune", help="what your own ledger says about the policy: which classes fall short")
+    tu.add_argument("--days", type=float, default=30)
+    tu.add_argument("--all", action="store_true")
+    tu.add_argument("--min-runs", type=int, default=20, help="runs needed before I say anything about a class")
+    tu.add_argument("--raise-at", type=float, default=0.15, help="fell-short rate that triggers a proposal")
+    tu.add_argument("--json", action="store_true")
+    tu.set_defaults(fn=cmd_tune)
 
     e = sub.add_parser("eval", help="score the router against a labelled JSONL file")
     e.add_argument("path")
