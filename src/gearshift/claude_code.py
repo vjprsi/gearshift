@@ -150,7 +150,14 @@ def agent_definition(agent_type: str, project_dir: Optional[str]) -> Tuple[str, 
     builtin = agent_type in ROUTABLE_BUILTINS
     if ":" in agent_type:
         # plugin agent. ours are pinned already, other plugins' we can't see -> hands off
-        return ("pinned", {}) if agent_type.startswith("gearshift:") else ("unknown", {})
+        if not agent_type.startswith("gearshift:"):
+            return "unknown", {}
+        # read our own agent file so the ledger knows which model it is pinned to
+        own = Path(__file__).resolve().parents[2] / "agents" / (agent_type.split(":", 1)[1] + ".md")
+        root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+        if root and not own.is_file():
+            own = Path(root) / "agents" / own.name
+        return "pinned", (_frontmatter(own) if own.is_file() else {})
     roots: List[Path] = []
     if project_dir:
         roots.append(Path(project_dir) / ".claude" / "agents")
@@ -247,6 +254,11 @@ def decide_agent_call(tool_input: Mapping[str, Any], *, cfg: Mapping[str, Any],
         return rec
     if status in ("pinned", "unknown"):
         rec["action"] = "pinned"
+        # where it will really run: the agent's own definition, not the session model
+        if fm.get("model"):
+            rec["pinned_model"] = fm["model"]
+        if fm.get("effort"):
+            rec["pinned_effort"] = fm["effort"]
         return rec
 
     bumped = None
@@ -364,13 +376,14 @@ def on_pre_agent(inp: Mapping[str, Any]) -> Optional[dict]:
         event["retry_of"] = prior.get("id")
         event["attempt"] = int(prior.get("attempt") or 1) + 1
     event.update(rec)
-    ran_tier = rec["model"] if rec["model"] in TIERS else (tier_of(str(rec["model"])) if rec["model"] else facts["tier"])
+    ran_model = rec["model"] or rec.get("pinned_model")
+    ran_tier = ran_model if ran_model in TIERS else (tier_of(str(ran_model)) if ran_model else facts["tier"])
     # subagents are often launched in parallel, so several of these hooks run
     # at once. re-read right before writing to keep the window small.
     st = load_session(sid)
     tasks = st.get("tasks") if isinstance(st.get("tasks"), list) else []
     tasks.append({"id": inp.get("tool_use_id"), "fp": fp, "desc": desc[:80], "tier": ran_tier,
-                  "effort": rec["effort"] or rec.get("want_effort"), "class": rec["class"],
+                  "effort": rec["effort"] or rec.get("pinned_effort") or rec.get("want_effort"), "class": rec["class"],
                   "attempt": event.get("attempt", 1), "short": False})
     st["tasks"] = tasks[-outcomes.MAX_TASKS:]
     save_session(sid, st)

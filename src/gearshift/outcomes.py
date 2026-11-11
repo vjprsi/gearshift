@@ -142,10 +142,16 @@ def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]
         d = done.get(r["tool_use_id"])
         if d is None:
             continue    # never came back (still running, or the session ended)
+        u = usage.get(d.get("agent_id")) or {}
         tier, effort = _ran(r)
+        # what actually ran beats what the route event implies. a pinned agent
+        # has no model on the call, and it is NOT running on the session model.
+        actual = d.get("resolved_model") or u.get("main_model")
+        if actual:
+            from .pricing import tier_of
+            tier = tier_of(str(actual)) or tier
         if not tier:
             continue
-        u = usage.get(d.get("agent_id")) or {}
         runs.append({
             "class": r.get("class") or "unsure", "tier": tier, "effort": effort,
             "routed_by": "gearshift" if r.get("action") in ("filled", "overrode", "effort-only") else "claude",
@@ -158,12 +164,12 @@ def collect_runs(state: Path, days: Optional[float] = 30) -> List[Dict[str, Any]
 
 
 def _ran(route: Mapping[str, Any]) -> Tuple[Optional[str], Optional[str]]:
-    model = route.get("model") or route.get("session_tier")
+    model = route.get("model") or route.get("pinned_model") or route.get("session_tier")
     tier = model if model in ("haiku", "sonnet", "opus", "fable") else None
     if tier is None and model:
         from .pricing import tier_of
         tier = tier_of(str(model))
-    return tier, route.get("effort")
+    return tier, route.get("effort") or route.get("pinned_effort")
 
 
 def build_tune(state: Path, *, days: Optional[float] = 30, min_runs: int = 20, raise_at: float = 0.15,

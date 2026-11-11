@@ -113,6 +113,28 @@ class Tune(unittest.TestCase):
         self.assertEqual((r["runs"], r["retried_higher"], r["fell_short"]), (20, 5, 5))
         self.assertEqual(r["verdict"], "raise lookup to haiku@high")
 
+    def test_pinned_agents_are_counted_where_they_ran(self):
+        # first live session: 15 scout runs showed up as "ran on opus" because the
+        # call names no model and I fell back to the session tier
+        for i in range(15):
+            ledger.append_event(self.state, {"ev": "route", "tool_use_id": "s%d" % i, "class": "lookup", "model": None,
+                                             "session_tier": "opus", "action": "pinned", "agent_type": "gearshift:scout"})
+            ledger.append_event(self.state, {"ev": "done", "tool_use_id": "s%d" % i, "agent_id": "a%d" % i,
+                                             "resolved_model": "claude-haiku-5-5"})
+        for i in range(3):      # older ledgers: no resolved model on done, but usage knows
+            ledger.append_event(self.state, {"ev": "route", "tool_use_id": "r%d" % i, "class": "review", "model": None,
+                                             "session_tier": "opus", "action": "pinned"})
+            ledger.append_event(self.state, {"ev": "done", "tool_use_id": "r%d" % i, "agent_id": "b%d" % i})
+            ledger.append_event(self.state, {"ev": "usage", "agent_id": "b%d" % i, "main_model": "claude-sonnet-5-5",
+                                             "cost_usd": 0.32})
+        ledger.append_event(self.state, {"ev": "route", "tool_use_id": "p0", "class": "review", "model": None,
+                                         "session_tier": "opus", "action": "pinned", "pinned_model": "sonnet"})
+        ledger.append_event(self.state, {"ev": "done", "tool_use_id": "p0"})
+        t = build_tune(self.state, min_runs=5, policy=POL)
+        self.assertEqual(sorted((r["class"], r["tier"], r["runs"]) for r in t["rows"]),
+                         [("lookup", "haiku", 15), ("review", "sonnet", 4)])
+        self.assertEqual(self.row(t, "lookup", "haiku")["verdict"], "keep")
+
     def test_cli(self):
         import subprocess, sys
         from tests.helpers import ROOT

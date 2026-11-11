@@ -390,6 +390,18 @@ class HookProcess(unittest.TestCase):
         probes = [e for e in self.events() if e["ev"] == "route" and e.get("probe_from")]
         self.assertEqual([e["tool_use_id"] for e in probes], [yes])
 
+    def test_pinned_agent_escalation_climbs_from_its_own_model(self):
+        scout = {"subagent_type": "gearshift:scout", "description": "Run tests", "prompt": "Run the test suite and report."}
+        self.hook("pre-agent", {"session_id": "s1", "transcript_path": self.transcript, "cwd": self.tmp,
+                                "tool_name": "Agent", "tool_use_id": "tu1", "tool_input": scout},
+                  env={"CLAUDE_PLUGIN_ROOT": ROOT})
+        ev = [e for e in self.events() if e["ev"] == "route"][-1]
+        self.assertEqual((ev["action"], ev.get("pinned_model")), ("pinned", "haiku"))
+        p = self.post("ESCALATE: the failure is in generated code I cannot read")
+        ctx = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("ran on haiku", ctx)
+        self.assertNotIn("opus@high", ctx)
+
     def test_shadow_mode_records_outcomes_but_says_nothing(self):
         self.pre(LOOKUP, GEARSHIFT_MODE="shadow")
         p = self.post("ESCALATE: too hard", GEARSHIFT_MODE="shadow")
