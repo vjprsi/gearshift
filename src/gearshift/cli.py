@@ -107,6 +107,21 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_statusline(args: argparse.Namespace) -> int:
+    from .statusline import main as render
+    if args.install:
+        # the snippet for ~/.claude/settings.json, with this machine's real path in it
+        launcher = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "bin", "gearshift.py")
+        cmd = '"%s" "%s" statusline' % (sys.executable, launcher) if os.path.exists(launcher) else "gearshift statusline"
+        print("Add this to ~/.claude/settings.json (merge it with what is there), then restart Claude Code:\n")
+        print(json.dumps({"statusLine": {"type": "command", "command": cmd}}, indent=2))
+        return 0
+    data = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
+    print(render(data))
+    return 0
+
+
 def cmd_tune(args: argparse.Namespace) -> int:
     from .config import state_dir
     from .outcomes import build_tune, format_tune
@@ -276,6 +291,10 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--session")
     rp.add_argument("--json", action="store_true")
     rp.set_defaults(fn=cmd_report)
+
+    sl = sub.add_parser("statusline", help="one line for Claude Code's status bar (reads session JSON on stdin)")
+    sl.add_argument("--install", action="store_true", help="print the settings.json snippet for this machine")
+    sl.set_defaults(fn=cmd_statusline)
 
     tu = sub.add_parser("tune", help="what your own ledger says about the policy: which classes fall short")
     tu.add_argument("--days", type=float, default=30)
