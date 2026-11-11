@@ -113,7 +113,10 @@ def cmd_statusline(args: argparse.Namespace) -> int:
         # the snippet for ~/.claude/settings.json, with this machine's real path in it
         launcher = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
                                 "bin", "gearshift.py")
-        cmd = '"%s" "%s" statusline' % (sys.executable, launcher) if os.path.exists(launcher) else "gearshift statusline"
+        if os.path.exists(launcher):
+            cmd = '"%s" "%s" statusline' % (sys.executable, launcher)
+        else:   # pip install: no bin/ folder, and `gearshift` may not be on PATH, so call the module
+            cmd = '"%s" -m gearshift statusline' % sys.executable
         print("Add this to ~/.claude/settings.json (merge it with what is there), then restart Claude Code:\n")
         print(json.dumps({"statusLine": {"type": "command", "command": cmd}}, indent=2))
         return 0
