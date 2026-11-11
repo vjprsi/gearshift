@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "as_of": "2026-11-10",
+  "version": "1.2.0",
+  "as_of": "2026-11-11",
   "about": "Routing policy for gearshift. Everything here is data: edit a copy and point GEARSHIFT_POLICY at it, or drop overrides in .gearshift.json. Patterns are case-insensitive regex fragments; the engine adds word boundaries on both ends.",
   "tiers": [
     "haiku",
@@ -3158,13 +3158,28 @@
       }
     },
     {
+      "name": "a diff to review",
+      "flag": "diff_review",
+      "patterns": [
+        "git diff",
+        "(?:uncommitted|staged|unstaged|untracked) (?:\\w+ ){0,2}(?:changes|diff|work|files)",
+        "(?:the|this|a) diff",
+        "(?:review|re-?review) (?:the |this |my |our )?(?:\\w+ )?(?:diff|pr|pull request|changes|patch)",
+        "(?:pr|pull request) #?\\d+",
+        "code review"
+      ],
+      "adds": {},
+      "quiet": true
+    },
+    {
       "name": "bug hunt",
       "flag": "bug_hunt",
       "patterns": [
         "(?:find|finding|look for|spot|hunt for|catch|identify|track down|locate) (?:the |a |an |any |all |some |possible |potential )?(?:\\w+ )?(?:bugs?|issues?|problems?|vulnerabilit\\w+|defects?|mistakes?|risks|gaps|flaws?|leaks?|regressions?)",
         "what(?:'s| is| went| has gone) (?:wrong|broken)",
         "why (?:it|this|that|the \\w+) (?:is |are )?(?:fail\\w*|break\\w*|crash\\w*|broken|wrong|slow|hang\\w*)",
-        "(?:encuentra|encontrar|busca|buscar|detecta|localiza|encontre|procure) (?:el |la |los |las |un |una |o |os |posibles |poss[ií]veis )?(?:errores?|bugs?|fallos?|fallas?|problemas?|vulnerabilidad(?:es)?|erros?|falhas?)"
+        "(?:encuentra|encontrar|busca|buscar|detecta|localiza|encontre|procure) (?:el |la |los |las |un |una |o |os |posibles |poss[ií]veis )?(?:errores?|bugs?|fallos?|fallas?|problemas?|vulnerabilidad(?:es)?|erros?|falhas?)",
+        "(?:find|work) out why"
       ],
       "adds": {
         "review": 2.5

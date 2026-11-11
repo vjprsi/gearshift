@@ -71,6 +71,28 @@ class CaseSets(unittest.TestCase):
         self.assertGreaterEqual(r["tier_accuracy"], 0.85, r["misses"])
         self.assertLessEqual(r["confident_under_routed"], 1, r["misses"])
 
+    def test_review_sets_stay_fixed(self):
+        # cases_review_blind was written before the rule and scored once: 81.6%, 6 diff reviews
+        # on Opus, 1 investigation on Haiku. cases_live_shorty had 5 reviews on Opus. Both are
+        # regression suites now.
+        for name in ("cases_review_blind.jsonl", "cases_live_shorty.jsonl"):
+            r = evaluate(os.path.join(TESTS, name), clean_router())
+            self.assertEqual((r["under_routed"], r["over_routed"]), (0, 0), (name, r["misses"]))
+
+    def test_a_diff_review_that_lists_concurrency_stays_on_sonnet_but_a_real_one_does_not(self):
+        router = clean_router()
+        d = router.route("Review the uncommitted diff in /work/x (git diff). Check the thread safety of the "
+                         "rate-limit table and what happens with duplicate events. Do not modify anything.",
+                         description="Review milestone 5 diff", agent_type="general-purpose", platform="claude-code")
+        self.assertEqual((d.task_class, d.tier, d.effort), ("review", "sonnet", "high"))
+        d = router.route("The checkout test fails about one run in twenty on CI and never locally. Find the "
+                         "root cause and report it. Read-only.", description="Investigate flaky test",
+                         agent_type="general-purpose", platform="claude-code")
+        self.assertEqual((d.task_class, d.tier), ("review", "opus"))
+        d = router.route("The nightly export sometimes produces rows in a different order. Find out why the "
+                         "order is non-deterministic and report the cause. Read-only.")
+        self.assertNotEqual(d.tier, "haiku", "an investigation that opens with 'find' is not a lookup")
+
     def test_haiku_is_never_given_work_labelled_above_it(self):
         from gearshift.evalset import load_cases
         router = clean_router()

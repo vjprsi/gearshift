@@ -77,6 +77,38 @@ The misses, left in: five reviews went to Opus where I had Sonnet (the diff ment
 
 What it is good for: the prompts are long (the main session writes real briefs), nothing fell to `unsure`, and nothing was under-routed. What it cannot tell you is how the classifier does on prompts unlike these.
 
+## Reviews sent to Opus (2.0): a blind set first, then the rule
+
+The live set above had five diff reviews on Opus, and run 3 had a sixth. This time I did it in the right order: wrote `tests/cases_review_blind.jsonl` first, scored it once on the 1.5.0 rules, and only then changed anything.
+
+The set is 38 briefs in the shape a main session really writes: 20 read-only reviews of a diff whose checklist mentions thread safety, duplicate events, payments, auth and so on (label: review on Sonnet); 8 real hard-to-reproduce problems to investigate or fix (label: Opus, as the table intends); 4 contained fixes handed over from a review (Sonnet); 6 lookups and test runs in the same repos (Haiku).
+
+| Set | Cases | Tier, first score | Under-routed | Over-routed |
+|---|---|---|---|---|
+| `cases_review_blind.jsonl` | 38 | 81.6% | 1 | 6 |
+
+- **Six diff reviews went to Opus.** The rule said: a review that mentions a concurrency word is a hard-to-reproduce bug. But "check the thread safety of the claim query" in a review brief is a checklist item, not a bug somebody is chasing.
+- **One investigation went to Haiku.** "It only happens on some nights. Find out why the order is non-deterministic" opens with "find" and says read-only, so it read as a lookup. That is the miss that matters more: under-routing costs quality and nobody notices.
+
+The fix, two small things in `policy.json` (now 1.2.0) and one branch in the router:
+
+- A new quiet signal, "a diff to review" (`git diff`, "uncommitted changes", "review the PR", "pull request 214", "code review"). When it is present, concurrency words no longer lift a review to Opus. It stays on Sonnet at high. A review with no diff in sight ("the test fails one run in twenty, find the root cause") still goes to Opus.
+- "find out why" and "work out why" count as hunting a bug, so the task is not a lookup.
+
+| Set | Before | After |
+|---|---|---|
+| `cases_review_blind.jsonl` (38) | 81.6%, 1 under, 6 over | 100% |
+| `cases_live_shorty.jsonl` (45) | 88.9%, 0 under, 5 over | 100% |
+| dev, Spanish, holdout 1 to 3 | unchanged | unchanged |
+| `cases_holdout4.jsonl` (unseen, 40) | 90.0% | 90.0% |
+| `cases_es_blind.jsonl` (unseen, 20) | 90.0% | 90.0% |
+
+Read the "after" column for what it is: both review sets are now sets I have tuned on, so 100% there is a regression floor, not a score. The honest numbers are the first ones. The two unseen sets were scored once after the change, to check for damage, and nothing was adjusted for them.
+
+What I have not shown: that Sonnet at high finds what Opus would in these reviews. The label follows the table. The seeded-defect runs in `docs/RESULTS.md` compare efforts on Sonnet, not Sonnet against Opus.
+
+I wrote the 38 briefs myself, knowing which pattern had failed. They are blind in the sense that no rule was written against them before they were scored, not in the sense that a stranger wrote them.
+
 ## The safeguards that matter more than accuracy
 
 - **Haiku decisions.** Across the five English sets as they stand, 0 of the 77 tasks routed to Haiku were labelled above Haiku. The rules that protect this (a change is never a lookup, a bug hunt is never a lookup, when torn go up) are tested directly in `tests/test_routing.py`.

@@ -205,7 +205,12 @@ class Router:
         if "judgment" in flags and tier == "haiku":
             raise_tier("sonnet", "judgment call: a wrong answer would pass unnoticed, so not Haiku")
         if "tricky" in flags and cls == "review":
-            raise_tier("opus", "hard-to-reproduce bug: tricky debugging goes to Opus even when read-only")
+            if "diff_review" in flags:
+                # live: a review brief that lists "thread safety" or "duplicate events" as things to
+                # check is not a hard-to-reproduce bug. Six real reviews went to Opus this way.
+                reasons.append("the concurrency words are a checklist for a diff review, not a bug to chase: stays on Sonnet")
+            else:
+                raise_tier("opus", "hard-to-reproduce bug: tricky debugging goes to Opus even when read-only")
         if "computer_use" in flags:
             raise_tier("opus", "computer use is Opus-tier work")
         if "vision" in flags:
