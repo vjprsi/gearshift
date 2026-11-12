@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.1 (2026-11-12)
+
+From my own ledger after a full day of real work: about $200 of delegated work, and a report that said 8 of 22 agents had finished.
+
+- Fixed: results lost when subagents are launched together. Claude Code starts several agents in one message, so several hooks run at once, each having read the session file before the others saved. The last one to write dropped the others' entries, and those agents never got a result recorded: no finish, no `ESCALATE:` reading, no check. Six builders launched together in a real session lost all six. Saving now takes a short lock, reads the file again and merges the task list. On 2.0.0 the new test (six agents at once) loses one to three of the six every time; on 2.0.1 it passes.
+- `report` lists the biggest runs with their share of the spend.
+- `report` estimates what went on agents re-saving a large context while writing almost nothing: what a long-lived agent costs when it sits idle past the cache window and is then sent more work. In that day's ledger it looked like about a quarter of the spend. It is an estimate from the steps between an agent's usage reports.
+- `report` says how many background agents have no result recorded.
+
+Not done: I have not re-run that day on 2.0.1, so the fix is proven by the test and not yet by a second real session. The classifier wanted Haiku for four of that day's six builder tasks (the agents' own Opus setting decided); those prompts are not in a labelled set yet.
+
 ## 2.0.0 (2026-11-11)
 
 Each of these was run before it was kept, and one was measured and removed. The tables are in `docs/RESULTS.md` and `docs/ACCURACY.md`.

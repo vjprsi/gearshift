@@ -92,16 +92,92 @@ def load_session(session_id: str) -> Dict[str, Any]:
         return {}
 
 
+_PER_JOB = ("done", "cur", "mut_now", "turn")     # reset each time the agent is sent more work
+
+
+def _merge_task(disk: Dict[str, Any], mine: Dict[str, Any]) -> Dict[str, Any]:
+    """Two hook processes held the same task. Keep what either one learned."""
+    out = dict(disk)
+    mine_turn, disk_turn = int(mine.get("turn") or 1), int(disk.get("turn") or 1)
+    for k, v in mine.items():
+        old = out.get(k)
+        if k in _PER_JOB:
+            if mine_turn < disk_turn:
+                continue                        # my copy is from an earlier job: the file knows better
+            if mine_turn > disk_turn:
+                out[k] = v                      # I started a newer job: mine stands
+            elif k == "done":
+                out[k] = bool(v) or bool(old)   # same job: finished is finished
+            elif v is not None or k not in out:
+                out[k] = v
+        elif k == "short":
+            out[k] = bool(v) or bool(old)       # fell short once, stays marked
+        elif k == "attempt" and isinstance(v, int) and isinstance(old, int):
+            out[k] = max(v, old)
+        elif v is not None or k not in out:
+            out[k] = v
+    return out
+
+
 def save_session(session_id: str, data: Dict[str, Any]) -> None:
+    """Write the session file without losing what another hook wrote meanwhile.
+
+    Claude Code launches subagents in parallel, so several of these hooks run at once,
+    each having read the file before the others saved. Plain last-writer-wins dropped
+    tasks: six builders launched together in a real session, and none of them got a
+    result recorded because their task entries had been overwritten. So: take a short
+    lock, read the file again, merge the task list by id, then write."""
     path = _session_file(session_id)
+    lock = path.with_suffix(".lock")
+    held = False
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
+        deadline = time.time() + 2.0
+        while True:
+            try:
+                os.close(os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+                held = True
+                break
+            except FileExistsError:
+                try:
+                    if time.time() - os.path.getmtime(str(lock)) > 10:
+                        os.unlink(str(lock))    # left behind by a hook that was killed
+                        continue
+                except OSError:
+                    pass
+                if time.time() > deadline:
+                    break                       # never block a session over a lock: write anyway
+                time.sleep(0.01)
+        disk = load_session(session_id)
+        merged = dict(disk)
+        merged.update({k: v for k, v in data.items() if k != "tasks"})
+        mine = data.get("tasks") if isinstance(data.get("tasks"), list) else []
+        theirs = disk.get("tasks") if isinstance(disk.get("tasks"), list) else []
+        if mine or theirs:
+            by_id: Dict[Any, Dict[str, Any]] = {}
+            order: List[Any] = []
+            for t in list(theirs) + list(mine):
+                if not isinstance(t, dict):
+                    continue
+                key = t.get("id") or id(t)
+                if key in by_id:
+                    by_id[key] = _merge_task(by_id[key], t)
+                else:
+                    by_id[key] = dict(t)
+                    order.append(key)
+            merged["tasks"] = [by_id[k] for k in order][-outcomes.MAX_TASKS:]
         tmp = path.with_suffix(".tmp.%d" % os.getpid())
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f)
+            json.dump(merged, f)
         os.replace(tmp, path)
     except OSError:
         pass
+    finally:
+        if held:
+            try:
+                os.unlink(str(lock))
+            except OSError:
+                pass
 
 
 def _parse_version(v: Optional[str]) -> Optional[Tuple[int, ...]]:

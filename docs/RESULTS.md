@@ -291,6 +291,25 @@ To finish it properly the sandbox needs tests that only use what the task text p
 
 I do not count that as the check catching a real mistake on its own. I arranged it knowing where Haiku would differ from the reference. The "mistake" is the design choice above, which Sonnet made too. And once it was sent back, the subagent opened the reference test helper, because the hook's message carries the check command and the path was in it. It shows the path from a failing check to a fixed result works on real model output. That is all.
 
+## A full day of real work (2.0.0), and what the ledger gave away
+
+Not a test: a normal working day with the plugin on, a Fable 5.2 session, numbers only.
+
+| | Runs | List price |
+|---|---|---|
+| Opus (six builders, five reviews, two forks, one Explore) | 14 | $178.03 |
+| Fable (one general-purpose agent) | 1 | $21.40 |
+| Haiku (scouts and Explore) | 4 | $0.57 |
+| Total delegated work | 19 | $200.00 |
+| Same tokens at the session's Fable rates | | $291.29 |
+
+31% below the session model's rates on the delegated work. The usual caveat: the second figure reprices the same tokens, it is not a second run. The hook filled in a model on three calls and set effort on four, the first time it has routed real work outside a test.
+
+Two things the ledger showed that had nothing to do with which model was picked:
+
+- **Idle agents are expensive.** Several long-lived agents wrote about 400,000 tokens of cache between two usage reports while producing a few thousand tokens of output. One builder went from $12.60 to $19.87 that way. Across the day it looked like $45 to $50, about a quarter of the spend. My reading is that an agent left idle past the cache window re-saves its whole context when it is sent more work; I have not confirmed the cause. `report` now estimates this.
+- **The report said 8 of 22 agents had finished.** None of the six builders had a result recorded. That was a bug, not slow agents: they were launched in the same message, the hooks ran at once, and they overwrote each other's entries in the session file. Fixed in 2.0.1, with a test that launches six at once.
+
 ## What it cost
 
 Roughly $1.50 at list price for everything above the 1.4.1 section, by my own tally of the runs. The five headless sessions were $2.09 together by Claude Code's own count ($0.34 to $0.48 each). The two sessions for 1.4.3 were $0.38 together. The three builds for 1.5.0 were $17.05 and the short SendMessage session $0.45. Run 4 was $5.77. The 18 seeded-defect reviews were $1.39. The unfinished walletcore benchmark was $19.61 for the 24 runs that finished, plus under $3 for runs I broke or stopped, and the session with the check $0.18.

@@ -155,6 +155,10 @@ def transcript_tools(path: str) -> set:
     return names
 
 
+IDLE_REWRITE_TOKENS = 100000     # cache written between two reports of the same agent...
+IDLE_OUTPUT_TOKENS = 3000        # ...while it wrote less than this
+
+
 def transcript_usage(path: str) -> Dict[str, Any]:
     """Sum usage over every model request in a transcript.
 
@@ -231,6 +235,42 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
         if e.get("ev") == "usage" and e.get("agent_id"):
             usages[e["agent_id"]] = e   # latest wins (a resumed agent reports cumulative totals)
 
+    # an agent that is resumed reports again, cumulatively. the steps between reports show
+    # stretches where it re-saved a large context and wrote almost nothing: a cache that
+    # expired while the agent sat idle, paid for again when it woke up.
+    idle_cost, idle_agents, prev = 0.0, set(), {}
+    for e in events:
+        if e.get("ev") != "usage" or not e.get("agent_id"):
+            continue
+        tot = {"out": 0, "cw": 0}
+        for usage in (e.get("by_model") or {}).values():
+            tot["out"] += int(usage.get("output_tokens") or 0)
+            tot["cw"] += int(usage.get("cache_write_5m_tokens") or 0) + int(usage.get("cache_write_1h_tokens") or 0)
+        tot["cost"] = float(e.get("cost_usd") or 0.0)
+        before = prev.get(e["agent_id"])
+        if before and tot["cw"] - before["cw"] >= IDLE_REWRITE_TOKENS and tot["out"] - before["out"] <= IDLE_OUTPUT_TOKENS:
+            idle_cost += max(0.0, tot["cost"] - before["cost"])
+            idle_agents.add(e["agent_id"])
+        prev[e["agent_id"]] = tot
+
+    desc_by_agent: Dict[str, str] = {}
+    by_tool = {r.get("tool_use_id"): r for r in routes if r.get("tool_use_id")}
+    for e in events:
+        if e.get("ev") in ("launched", "done") and e.get("agent_id") and e.get("tool_use_id") in by_tool:
+            desc_by_agent.setdefault(e["agent_id"], str(by_tool[e["tool_use_id"]].get("desc") or ""))
+    biggest = []
+    for agent_id, u in sorted(usages.items(), key=lambda kv: -float(kv[1].get("cost_usd") or 0.0))[:5]:
+        if float(u.get("cost_usd") or 0.0) <= 0:
+            continue
+        biggest.append({
+            "cost_usd": round(float(u.get("cost_usd") or 0.0), 4), "agent_type": u.get("agent_type") or "?",
+            "tier": tier_of(str(u.get("main_model") or "")) or (u.get("main_model") or "?"),
+            "tokens": sum(_tokens(x) for x in (u.get("by_model") or {}).values()),
+            "requests": u.get("requests"), "desc": desc_by_agent.get(agent_id, ""),
+        })
+    finished_ids = {e.get("agent_id") for e in dones if e.get("agent_id")}
+    launched_ids = {e.get("agent_id") for e in events if e.get("ev") == "launched" and e.get("agent_id")}
+
     actions: Dict[str, int] = {}
     classes: Dict[str, int] = {}
     for r in routes:
@@ -280,6 +320,10 @@ def build_report(state: Path, days: Optional[float] = 7, session: Optional[str] 
         "spend_usd": round(spend, 4),
         "same_tokens_at_session_rates_usd": round(counter, 4) if (counter_known and usages) else None,
         "unpriced_models": sorted(unpriced),
+        "biggest_runs": biggest,
+        "idle_resave_usd": round(idle_cost, 4),
+        "idle_resave_agents": len(idle_agents),
+        "launched_no_result": len(launched_ids - finished_ids),
         "outcomes": {
             "finished": sum(1 for e in dones if not e.get("continued")),
             "launched": sum(1 for e in events if e.get("ev") == "launched"),
@@ -346,6 +390,9 @@ def format_report(rep: Dict[str, Any]) -> str:
             if oc.get("sent_back"):
                 line += "; %d sent back to the subagent to fix" % oc["sent_back"]
             lines.append(line)
+    if rep.get("launched_no_result"):
+        lines.append("  %d background agents have no result recorded (still running, or the session ended first)"
+                     % rep["launched_no_result"])
     lines.append("")
     lines.append("Subagent runs measured: %d" % rep["subagents_measured"])
     for tier in ("haiku", "sonnet", "opus", "fable"):
@@ -362,6 +409,22 @@ def format_report(rep: Dict[str, Any]) -> str:
     if rep["tiers"]:
         lines.append("  (tokens are everything billed, cache reads included, so a long run re-reading its")
         lines.append("   context counts it each time. That is why they exceed the agent's context size.)")
+    big = rep.get("biggest_runs") or []
+    if len(big) > 1 and rep["spend_usd"] > 0:
+        lines.append("")
+        lines.append("Biggest runs:")
+        for b in big:
+            what = (" - " + b["desc"]) if b.get("desc") else ""
+            lines.append("  $%8.4f  %3.0f%%  %-6s %s, %s tokens%s" % (
+                b["cost_usd"], 100.0 * b["cost_usd"] / rep["spend_usd"], b["tier"], b["agent_type"],
+                "{:,}".format(b["tokens"]), what[:60]))
+    if rep.get("idle_resave_usd", 0) >= 0.01:
+        lines.append("")
+        lines.append("About $%.2f of this (%.0f%%) went on %d agent%s re-saving a large context while writing" % (
+            rep["idle_resave_usd"], 100.0 * rep["idle_resave_usd"] / rep["spend_usd"] if rep["spend_usd"] else 0,
+            rep["idle_resave_agents"], "" if rep["idle_resave_agents"] == 1 else "s"))
+        lines.append("almost nothing. That is what a long-lived agent costs when it sits idle past the cache")
+        lines.append("window and is then sent more work. An estimate: a fresh agent for the next job avoids it.")
     lines.append("")
     lines.append("Subagent spend at list price:            $%.4f" % rep["spend_usd"])
     cf = rep.get("same_tokens_at_session_rates_usd")
